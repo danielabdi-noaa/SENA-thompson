@@ -27,7 +27,7 @@ module module_mp_thompson_make_number_concentrations
    contains
 
       elemental real function make_IceNumber (Q_ice, temp)
-
+!$acc routine seq
       !IMPLICIT NONE
       REAL, PARAMETER:: Ice_density = 890.0
       !REAL, PARAMETER:: PI = 3.1415926536
@@ -125,7 +125,7 @@ module module_mp_thompson_make_number_concentrations
 !+---+-----------------------------------------------------------------+ 
 
       elemental real function make_DropletNumber (Q_cloud, qnwfa)
-
+!$acc routine seq
       !IMPLICIT NONE
 
       real, intent(in):: Q_cloud, qnwfa
@@ -162,7 +162,7 @@ module module_mp_thompson_make_number_concentrations
 !+---+-----------------------------------------------------------------+ 
 
       elemental real function make_RainNumber (Q_rain, temp)
-
+!$acc routine seq
       IMPLICIT NONE
 
       real, intent(in):: Q_rain, temp
