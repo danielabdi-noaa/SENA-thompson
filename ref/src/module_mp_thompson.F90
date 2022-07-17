@@ -71,6 +71,7 @@ MODULE module_mp_thompson
 
       LOGICAL, PARAMETER, PRIVATE:: iiwarm = .false.
       LOGICAL, PRIVATE:: is_aerosol_aware = .false.
+!$acc declare create(is_aerosol_aware)
       LOGICAL, PARAMETER, PRIVATE:: dustyIce = .true.
       LOGICAL, PARAMETER, PRIVATE:: homogIce = .true.
 
@@ -108,6 +109,7 @@ MODULE module_mp_thompson
       REAL, PARAMETER, PRIVATE:: mu_g = 0.0
       REAL, PARAMETER, PRIVATE:: mu_i = 0.0
       REAL, PRIVATE:: mu_c
+!$acc declare create(mu_c)
 
 !..Sum of two gamma distrib for snow (Field et al. 2005).
 !.. N(D) = M2**4/M3**3 * [Kap0*exp(-M2*Lam0*D/M3)
@@ -185,6 +187,7 @@ MODULE module_mp_thompson
 !..Schmidt number
       REAL, PARAMETER, PRIVATE:: Sc = 0.632
       REAL, PRIVATE:: Sc3
+!$acc declare create(Sc3)
 
 !..Homogeneous freezing temperature
       REAL, PARAMETER, PRIVATE:: HGFR = 235.16
@@ -217,6 +220,7 @@ MODULE module_mp_thompson
       REAL, PARAMETER, PRIVATE:: D0s = 300.E-6
       REAL, PARAMETER, PRIVATE:: D0g = 350.E-6
       REAL, PRIVATE:: D0i, xm0s, xm0g
+!$acc declare create(D0i, xm0s, xm0g)
 
 !..Min and max radiative effective radius of cloud water, cloud ice, and snow;
 !.. performed by subroutine calc_effectRad. On purpose, these should stay PUBLIC.
@@ -244,6 +248,7 @@ MODULE module_mp_thompson
       INTEGER, PARAMETER, PRIVATE:: ntb_i1 = 55
       INTEGER, PARAMETER, PRIVATE:: ntb_t = 9
       INTEGER, PRIVATE:: nic1, nic2, nii2, nii3, nir2, nir3, nis2, nig2, nig3
+!$acc declare create(nic1, nic2, nii2, nii3, nir2, nir3, nis2, nig2, nig3)
       INTEGER, PARAMETER, PRIVATE:: ntb_arc = 7
       INTEGER, PARAMETER, PRIVATE:: ntb_arw = 9
       INTEGER, PARAMETER, PRIVATE:: ntb_art = 7
@@ -251,6 +256,7 @@ MODULE module_mp_thompson
       INTEGER, PARAMETER, PRIVATE:: ntb_ark = 4
       INTEGER, PARAMETER, PRIVATE:: ntb_IN = 55
       INTEGER, PRIVATE:: niIN2
+!$acc declare create(niIN2)
 
       DOUBLE PRECISION, DIMENSION(nbins+1):: xDx
       DOUBLE PRECISION, DIMENSION(nbc):: Dc, dtc
@@ -259,6 +265,7 @@ MODULE module_mp_thompson
       DOUBLE PRECISION, DIMENSION(nbs):: Ds, dts
       DOUBLE PRECISION, DIMENSION(nbg):: Dg, dtg
       DOUBLE PRECISION, DIMENSION(nbc):: t_Nc
+!$acc declare create(xDx, Dc, dtc, Di, dti, Dr, dtr, Ds, dts, Dg, dtg, t_Nc)
 
 !> Lookup tables for cloud water content (kg/m**3).
       REAL, DIMENSION(ntb_c), PARAMETER, PRIVATE:: &
@@ -327,6 +334,7 @@ MODULE module_mp_thompson
                1.e4,2.e4,3.e4,4.e4,5.e4,6.e4,7.e4,8.e4,9.e4, &
                1.e5,2.e5,3.e5,4.e5,5.e5,6.e5,7.e5,8.e5,9.e5, &
                1.e6/)
+!$acc declare copyin(r_c, r_i, r_r, r_g, r_s, N0r_exp, N0g_exp, Nt_i)
 
 !..Aerosol table parameter: Number of available aerosols, vertical
 !.. velocity, temperature, aerosol mean radius, and hygroscopicity.
@@ -340,6 +348,7 @@ MODULE module_mp_thompson
       ta_Ra = (/0.01, 0.02, 0.04, 0.08, 0.16/)
       REAL, DIMENSION(ntb_ark), PARAMETER, PRIVATE:: &
       ta_Ka = (/0.2, 0.4, 0.6, 0.8/)
+!$acc declare copyin(ta_Na, ta_Ww, ta_Tk, ta_Ra, ta_Ka)
 
 !> Lookup tables for IN concentration (/m**3) from 0.001 to 1000/Liter.
       REAL, DIMENSION(ntb_IN), PARAMETER, PRIVATE:: &
@@ -362,6 +371,8 @@ MODULE module_mp_thompson
 !> Temperatures (5 C interval 0 to -40) used in lookup tables.
       REAL, DIMENSION(ntb_t), PARAMETER, PRIVATE:: &
       Tc = (/-0.01, -5., -10., -15., -20., -25., -30., -35., -40./)
+
+!$acc declare copyin(Nt_IN, sa, sb, Tc)
 
 !..Lookup tables for various accretion/collection terms.
 !.. ntb_x refers to the number of elements for rain, snow, graupel,
@@ -398,6 +409,14 @@ MODULE module_mp_thompson
       REAL (KIND=R8SIZE), ALLOCATABLE, DIMENSION(:,:,:)::               &
                 tpc_wev, tnc_wev
       REAL (KIND=R4SIZE), ALLOCATABLE, DIMENSION(:,:,:,:,:):: tnccn_act
+!$acc declare create(tcg_racg, tmr_racg, tcr_gacr, tmg_gacr,                 &
+!$acc                tnr_racg, tnr_gacr, &
+!$acc                tcs_racs1, tmr_racs1, tcs_racs2, tmr_racs2,             &
+!$acc                tcr_sacr1, tms_sacr1, tcr_sacr2, tms_sacr2,             &
+!$acc                tnr_racs1, tnr_racs2, tnr_sacr1, tnr_sacr2, &
+!$acc                tpi_qcfz, tni_qcfz, tpi_qrfz, tpg_qrfz, tni_qrfz, tnr_qrfz, &
+!$acc                tps_iaus, tni_iaus, tpi_ide, t_Efrw, t_Efsw, tnr_rev, &
+!$acc                tpc_wev, tnc_wev, tnccn_act)
 
 !..Variables holding a bunch of exponents and gamma values (cloud water,
 !.. cloud ice, rain, snow, then graupel).
@@ -411,12 +430,19 @@ MODULE module_mp_thompson
       REAL, PRIVATE:: oams, obms, ocms
       REAL, DIMENSION(12), PRIVATE:: cge, cgg
       REAL, PRIVATE:: oge1, ogg1, ogg2, ogg3, oamg, obmg, ocmg
+!$acc declare create(cce,ccg,ocg1,ocg2,cie,cig,cre,crg,cse,csg,cge,cgg, &
+!$acc                oig1, oig2, obmi,ore1, org1, org2, org3, obmr, &
+!$acc                oams, obms, ocms,oge1, ogg1, ogg2, ogg3, oamg, obmg, ocmg)
 
 !..Declaration of precomputed constants in various rate eqns.
       REAL:: t1_qr_qc, t1_qr_qi, t2_qr_qi, t1_qg_qc, t1_qs_qc, t1_qs_qi
       REAL:: t1_qr_ev, t2_qr_ev
       REAL:: t1_qs_sd, t2_qs_sd, t1_qg_sd, t2_qg_sd
       REAL:: t1_qs_me, t2_qs_me, t1_qg_me, t2_qg_me
+!$acc declare create(t1_qr_qc, t1_qr_qi, t2_qr_qi, t1_qg_qc, t1_qs_qc, t1_qs_qi, &
+!$acc                t1_qr_ev, t2_qr_ev, &
+!$acc                t1_qs_sd, t2_qs_sd, t1_qg_sd, t2_qg_sd, &
+!$acc                t1_qs_me, t2_qs_me, t1_qg_me, t2_qg_me)
 
 !..MPI communicator
       INTEGER:: mpi_communicator
@@ -456,6 +482,7 @@ MODULE module_mp_thompson
 
 ! Set module variable is_aerosol_aware
       is_aerosol_aware = is_aerosol_aware_in
+!$acc update device(is_aerosol_aware)
       if (mpirank==mpiroot) then
          if (is_aerosol_aware) then
             write (0,'(a)') 'Using aerosol-aware version of Thompson microphysics'
@@ -515,7 +542,7 @@ MODULE module_mp_thompson
             ALLOCATE(tnccn_act(ntb_arc,ntb_arw,ntb_art,ntb_arr,ntb_ark))
 
       if_micro_init: if (micro_init) then
-
+!$acc kernels
 !> - From Martin et al. (1994), assign gamma shape parameter mu for cloud
 !! drops according to general dispersion characteristics (disp=~0.25
 !! for maritime and 0.45 for continental)
@@ -689,6 +716,7 @@ MODULE module_mp_thompson
 !>  - Create bins of cloud water (from min diameter up to 100 microns)
       Dc(1) = D0c*1.0d0
       dtc(1) = D0c*1.0d0
+!$acc loop seq
       do n = 2, nbc
          Dc(n) = Dc(n-1) + 1.0D-6
          dtc(n) = (Dc(n) - Dc(n-1))
@@ -697,6 +725,7 @@ MODULE module_mp_thompson
 !>  - Create bins of cloud ice (from min diameter up to 5x min snow size)
       xDx(1) = D0i*1.0d0
       xDx(nbi+1) = 5.0d0*D0s
+!$acc loop independent
       do n = 2, nbi
          xDx(n) = DEXP(DFLOAT(n-1)/DFLOAT(nbi) &
                   *DLOG(xDx(nbi+1)/xDx(1)) +DLOG(xDx(1)))
@@ -709,6 +738,7 @@ MODULE module_mp_thompson
 !>  - Create bins of rain (from min diameter up to 5 mm)
       xDx(1) = D0r*1.0d0
       xDx(nbr+1) = 0.005d0
+!$acc loop independent
       do n = 2, nbr
          xDx(n) = DEXP(DFLOAT(n-1)/DFLOAT(nbr) &
                   *DLOG(xDx(nbr+1)/xDx(1)) +DLOG(xDx(1)))
@@ -721,6 +751,7 @@ MODULE module_mp_thompson
 !>  - Create bins of snow (from min diameter up to 2 cm)
       xDx(1) = D0s*1.0d0
       xDx(nbs+1) = 0.02d0
+!$acc loop independent
       do n = 2, nbs
          xDx(n) = DEXP(DFLOAT(n-1)/DFLOAT(nbs) &
                   *DLOG(xDx(nbs+1)/xDx(1)) +DLOG(xDx(1)))
@@ -733,6 +764,7 @@ MODULE module_mp_thompson
 !>  - Create bins of graupel (from min diameter up to 5 cm)
       xDx(1) = D0g*1.0d0
       xDx(nbg+1) = 0.05d0
+!$acc loop independent
       do n = 2, nbg
          xDx(n) = DEXP(DFLOAT(n-1)/DFLOAT(nbg) &
                   *DLOG(xDx(nbg+1)/xDx(1)) +DLOG(xDx(1)))
@@ -745,6 +777,7 @@ MODULE module_mp_thompson
 !>  - Create bins of cloud droplet number concentration (1 to 3000 per cc)
       xDx(1) = 1.0d0
       xDx(nbc+1) = 3000.0d0
+!$acc loop independent
       do n = 2, nbc
          xDx(n) = DEXP(DFLOAT(n-1)/DFLOAT(nbc)                          &
                   *DLOG(xDx(nbc+1)/xDx(1)) +DLOG(xDx(1)))
@@ -753,7 +786,7 @@ MODULE module_mp_thompson
          t_Nc(n) = DSQRT(xDx(n)*xDx(n+1)) * 1.D6
       enddo
       nic1 = DLOG(t_Nc(nbc)/t_Nc(1))
-
+!$acc end kernels
 !+---+-----------------------------------------------------------------+
 !> - Create lookup tables for most costly calculations
 !+---+-----------------------------------------------------------------+
@@ -774,6 +807,7 @@ MODULE module_mp_thompson
 
       call cpu_time(stime)
 
+!$acc kernels
       do m = 1, ntb_r
          do k = 1, ntb_r1
             do j = 1, ntb_g
@@ -874,6 +908,7 @@ MODULE module_mp_thompson
             enddo
          enddo
       enddo
+!$acc end kernels
 
       if (mpirank==mpiroot) write (*,*)'creating microphysics lookup tables ... '
       if (mpirank==mpiroot) write (*,'(a, f5.2, a, f5.2, a, f5.2, a, f5.2)') &
@@ -907,6 +942,7 @@ MODULE module_mp_thompson
 
 !>  - Call radar_init() to initialize various constants for computing radar reflectivity
       call cpu_time(stime)
+!$acc kernels
       xam_r = am_r
       xbm_r = bm_r
       xmu_r = mu_r
@@ -916,6 +952,7 @@ MODULE module_mp_thompson
       xam_g = am_g
       xbm_g = bm_g
       xmu_g = mu_g
+!$acc end kernels
       call radar_init
       call cpu_time(etime)
       if (mpirank==mpiroot) print '("Calling radar_init took ",f10.3," seconds.")', etime-stime
@@ -1101,6 +1138,7 @@ MODULE module_mp_thompson
                           rainprod1d, evapprod1d
 #endif
       REAL, DIMENSION(its:ite, jts:jte):: pcp_ra, pcp_sn, pcp_gr, pcp_ic
+!$acc declare create(pcp_ra, pcp_sn, pcp_gr, pcp_ic)
       REAL:: dt, pptrain, pptsnow, pptgraul, pptice
       REAL:: qc_max, qr_max, qs_max, qi_max, qg_max, ni_max, nr_max
       REAL:: rand1, rand2, rand3, rand_pert_max
@@ -1113,6 +1151,62 @@ MODULE module_mp_thompson
       INTEGER, OPTIONAL, INTENT(IN) :: do_radar_ref
       logical :: melti = .false.
       INTEGER :: ndt, it
+
+      !=============
+      REAL, DIMENSION(kts:kte):: tten, qvten, qcten, qiten, &
+           qrten, qsten, qgten, niten, nrten, ncten, nwfaten, nifaten
+
+      DOUBLE PRECISION, DIMENSION(kts:kte):: prw_vcd
+
+      DOUBLE PRECISION, DIMENSION(kts:kte):: pnc_wcd, pnc_wau, pnc_rcw, &
+           pnc_scw, pnc_gcw
+
+      DOUBLE PRECISION, DIMENSION(kts:kte):: pna_rca, pna_sca, pna_gca, &
+           pnd_rcd, pnd_scd, pnd_gcd
+
+      DOUBLE PRECISION, DIMENSION(kts:kte):: prr_wau, prr_rcw, prr_rcs, &
+           prr_rcg, prr_sml, prr_gml, &
+           prr_rci, prv_rev,          &
+           pnr_wau, pnr_rcs, pnr_rcg, &
+           pnr_rci, pnr_sml, pnr_gml, &
+           pnr_rev, pnr_rcr, pnr_rfz
+
+      DOUBLE PRECISION, DIMENSION(kts:kte):: pri_inu, pni_inu, pri_ihm, &
+           pni_ihm, pri_wfz, pni_wfz, &
+           pri_rfz, pni_rfz, pri_ide, &
+           pni_ide, pri_rci, pni_rci, &
+           pni_sci, pni_iau, pri_iha, pni_iha
+
+      DOUBLE PRECISION, DIMENSION(kts:kte):: prs_iau, prs_sci, prs_rcs, &
+           prs_scw, prs_sde, prs_ihm, &
+           prs_ide
+
+      DOUBLE PRECISION, DIMENSION(kts:kte):: prg_scw, prg_rfz, prg_gde, &
+           prg_gcw, prg_rci, prg_rcs, &
+           prg_rcg, prg_ihm
+
+      REAL, DIMENSION(kts:kte):: temp, pres, t_qv
+      REAL, DIMENSION(kts:kte):: rc, ri, rr, rs, rg, t_ni, t_nr, t_nc, t_nwfa, t_nifa
+      REAL, DIMENSION(kts:kte):: rr_tmp, nr_tmp, rg_tmp
+      REAL, DIMENSION(kts:kte):: t_rho, rhof, rhof2
+      REAL, DIMENSION(kts:kte):: qvs, qvsi, delQvs
+      REAL, DIMENSION(kts:kte):: satw, sati, ssatw, ssati
+      REAL, DIMENSION(kts:kte):: diffu, visco, vsc2, &
+           tcond, lvap, ocp, lvt2
+
+      DOUBLE PRECISION, DIMENSION(kts:kte):: ilamr, ilamg, N0_r, N0_g
+      REAL, DIMENSION(kts:kte):: mvd_r, mvd_c
+      REAL, DIMENSION(kts:kte):: smob, smo2, smo1, smo0, &
+           smoc, smod, smoe, smof
+
+      REAL, DIMENSION(kts:kte):: sed_r, sed_s, sed_g, sed_i, sed_n,sed_c
+      REAL, DIMENSION(5):: onstep
+      REAL, DIMENSION(kts:kte+1):: vtik, vtnik, vtrk, vtnrk, vtsk, vtgk,  &
+           vtck, vtnck
+      REAL, DIMENSION(kts:kte):: vts_boost
+      INTEGER, DIMENSION(5):: ksed1
+      LOGICAL, DIMENSION(kts:kte):: L_qc, L_qi, L_qr, L_qs, L_qg
+      !========
 
       ! CCPP error handling
       character(len=*), optional, intent(  out) :: errmsg
@@ -1209,6 +1303,19 @@ MODULE module_mp_thompson
          allocate (nrten1(kts:kte))
          allocate (ncten1(kts:kte))
          allocate (qcten1(kts:kte))
+!$acc enter data create(       prw_vcdc1,                                 &
+!$acc                          prw_vcde1, tpri_inu1, tpri_ide1_d,         &
+!$acc                          tpri_ide1_s, tprs_ide1,                    &
+!$acc                          tprs_sde1_d, tprs_sde1_s, tprg_gde1_d,     &
+!$acc                          tprg_gde1_s, tpri_iha1, tpri_wfz1,         &
+!$acc                          tpri_rfz1, tprg_rfz1, tprs_scw1, tprg_scw1,&
+!$acc                          tprg_rcs1, tprs_rcs1,                      &
+!$acc                          tprr_rci1, tprg_rcg1,                      &
+!$acc                          tprw_vcd1_c, tprw_vcd1_e, tprr_sml1,       &
+!$acc                          tprr_gml1, tprr_rcg1,                      &
+!$acc                          tprr_rcs1, tprv_rev1,  tten1, qvten1,      &
+!$acc                          qrten1, qsten1, qgten1, qiten1, niten1,    &
+!$acc                          nrten1, ncten1, qcten1)
       end if allocate_extended_diagnostics
 
 !+---+
@@ -1226,6 +1333,7 @@ MODULE module_mp_thompson
 !        j_end   = jte
 !     endif
 
+!$acc kernels
 !     dt = dt_in
       RAINNC(:,:) = 0.0
       SNOWNC(:,:) = 0.0
@@ -1235,6 +1343,7 @@ MODULE module_mp_thompson
       pcp_sn(:,:) = 0.0
       pcp_gr(:,:) = 0.0
       pcp_ic(:,:) = 0.0
+!$acc end kernels
       rand_pert_max = 0.0
       ndt = max(nint(dt_in/dt_inner),1)
       dt = dt_in/ndt
@@ -1282,6 +1391,59 @@ MODULE module_mp_thompson
       kmax_qg = 0
       kmax_ni = 0
       kmax_nr = 0
+
+!$acc kernels &
+!$acc loop collapse(2) independent &
+#if ( WRF_CHEM == 1 )
+!$acc private(rainprod, evapprod) &
+#endif
+!$acc private(qv1d, qc1d, qi1d, qr1d, qs1d, qg1d, ni1d,     &
+!$acc          nr1d, nc1d, nwfa1d, nifa1d,                   &
+!$acc          t1d, p1d, w1d, dz1d, rho, dBZ,                &
+!$acc          re_qc1d, re_qi1d, re_qs1d)  &
+!$acc private(tten, qvten, qcten, qiten, &
+!$acc           qrten, qsten, qgten, niten, nrten, ncten, nwfaten, nifaten, &
+!$acc           prw_vcd, &
+!$acc           pnc_wcd, pnc_wau, pnc_rcw, &
+!$acc           pnc_scw, pnc_gcw, &
+!$acc           pna_rca, pna_sca, pna_gca, &
+!$acc           pnd_rcd, pnd_scd, pnd_gcd, &
+!$acc           prr_wau, prr_rcw, prr_rcs, &
+!$acc           prr_rcg, prr_sml, prr_gml, &
+!$acc           prr_rci, prv_rev,          &
+!$acc           pnr_wau, pnr_rcs, pnr_rcg, &
+!$acc           pnr_rci, pnr_sml, pnr_gml, &
+!$acc           pnr_rev, pnr_rcr, pnr_rfz, &
+!$acc           pri_inu, pni_inu, pri_ihm, &
+!$acc           pni_ihm, pri_wfz, pni_wfz, &
+!$acc           pri_rfz, pni_rfz, pri_ide, &
+!$acc           pni_ide, pri_rci, pni_rci, &
+!$acc           pni_sci, pni_iau, pri_iha, pni_iha, &
+!$acc           prs_iau, prs_sci, prs_rcs, &
+!$acc           prs_scw, prs_sde, prs_ihm, &
+!$acc           prs_ide, &
+!$acc           prg_scw, prg_rfz, prg_gde, &
+!$acc           prg_gcw, prg_rci, prg_rcs, &
+!$acc           prg_rcg, prg_ihm, &
+!$acc           temp, pres, t_qv, &
+!$acc           rc, ri, rr, rs, rg, t_ni, t_nr, t_nc, t_nwfa, t_nifa, &
+!$acc           rr_tmp, nr_tmp, rg_tmp, &
+!$acc           t_rho, rhof, rhof2, &
+!$acc           qvs, qvsi, delQvs, &
+!$acc           satw, sati, ssatw, ssati, &
+!$acc           diffu, visco, vsc2, &
+!$acc           tcond, lvap, ocp, lvt2, &
+!$acc           ilamr, ilamg, N0_r, N0_g, &
+!$acc           mvd_r, mvd_c, &
+!$acc           smob, smo2, smo1, smo0, &
+!$acc           smoc, smod, smoe, smof, &
+!$acc           sed_r, sed_s, sed_g, sed_i, sed_n,sed_c, &
+!$acc           onstep, &
+!$acc           vtik, vtnik, vtrk, vtnrk, vtsk, vtgk,  &
+!$acc           vtck, vtnck, &
+!$acc           vts_boost, &
+!$acc           ksed1, &
+!$acc           L_qc, L_qi, L_qr, L_qs, L_qg)
 
       j_loop:  do j = j_start, j_end
       i_loop:  do i = i_start, i_end
@@ -1426,7 +1588,50 @@ MODULE module_mp_thompson
                       tprw_vcd1_e, tprr_sml1, tprr_gml1, tprr_rcg1,    &
                       tprr_rcs1, tprv_rev1,                            &
                       tten1, qvten1, qrten1, qsten1,                   &
-                      qgten1, qiten1, niten1, nrten1, ncten1, qcten1)
+                      qgten1, qiten1, niten1, nrten1, ncten1, qcten1,  &
+           tten, qvten, qcten, qiten, &
+           qrten, qsten, qgten, niten, nrten, ncten, nwfaten, nifaten, &
+           prw_vcd, &
+           pnc_wcd, pnc_wau, pnc_rcw, &
+           pnc_scw, pnc_gcw, &
+           pna_rca, pna_sca, pna_gca, &
+           pnd_rcd, pnd_scd, pnd_gcd, &
+           prr_wau, prr_rcw, prr_rcs, &
+           prr_rcg, prr_sml, prr_gml, &
+           prr_rci, prv_rev,          &
+           pnr_wau, pnr_rcs, pnr_rcg, &
+           pnr_rci, pnr_sml, pnr_gml, &
+           pnr_rev, pnr_rcr, pnr_rfz, &
+           pri_inu, pni_inu, pri_ihm, &
+           pni_ihm, pri_wfz, pni_wfz, &
+           pri_rfz, pni_rfz, pri_ide, &
+           pni_ide, pri_rci, pni_rci, &
+           pni_sci, pni_iau, pri_iha, pni_iha, &
+           prs_iau, prs_sci, prs_rcs, &
+           prs_scw, prs_sde, prs_ihm, &
+           prs_ide, &
+           prg_scw, prg_rfz, prg_gde, &
+           prg_gcw, prg_rci, prg_rcs, &
+           prg_rcg, prg_ihm, &
+           temp, pres, t_qv, &
+           rc, ri, rr, rs, rg, t_ni, t_nr, t_nc, t_nwfa, t_nifa, &
+           rr_tmp, nr_tmp, rg_tmp, &
+           t_rho, rhof, rhof2, &
+           qvs, qvsi, delQvs, &
+           satw, sati, ssatw, ssati, &
+           diffu, visco, vsc2, &
+           tcond, lvap, ocp, lvt2, &
+           ilamr, ilamg, N0_r, N0_g, &
+           mvd_r, mvd_c, &
+           smob, smo2, smo1, smo0, &
+           smoc, smod, smoe, smof, &
+           sed_r, sed_s, sed_g, sed_i, sed_n,sed_c, &
+           onstep, &
+           vtik, vtnik, vtrk, vtnrk, vtsk, vtgk,  &
+           vtck, vtnck, &
+           vts_boost, &
+           ksed1, &
+           L_qc, L_qi, L_qr, L_qs, L_qg)
 
          pcp_ra(i,j) = pcp_ra(i,j) + pptrain
          pcp_sn(i,j) = pcp_sn(i,j) + pptsnow
@@ -1473,6 +1678,7 @@ MODULE module_mp_thompson
             enddo
          endif
 
+!$acc loop independent reduction(max:qc_max,qr_max,qs_max,qi_max,qg_max,ni_max,nr_max)
          do k = kts, kte
             qv(i,k,j) = qv1d(k)
             qc(i,k,j) = qc1d(k)
@@ -1497,8 +1703,10 @@ MODULE module_mp_thompson
              kmax_qc = k
              qc_max = qc1d(k)
             elseif (qc1d(k) .lt. 0.0) then
+#ifndef _OPENACC
              write(*,'(a,e16.7,a,3i8)') 'WARNING, negative qc ', qc1d(k),        &
                         ' at i,j,k=', i,j,k
+#endif
             endif
             if (qr1d(k) .gt. qr_max) then
              imax_qr = i
@@ -1506,8 +1714,10 @@ MODULE module_mp_thompson
              kmax_qr = k
              qr_max = qr1d(k)
             elseif (qr1d(k) .lt. 0.0) then
+#ifndef _OPENACC
              write(*,'(a,e16.7,a,3i8)') 'WARNING, negative qr ', qr1d(k),        &
                         ' at i,j,k=', i,j,k
+#endif
             endif
             if (nr1d(k) .gt. nr_max) then
              imax_nr = i
@@ -1515,8 +1725,10 @@ MODULE module_mp_thompson
              kmax_nr = k
              nr_max = nr1d(k)
             elseif (nr1d(k) .lt. 0.0) then
+#ifndef _OPENACC
              write(*,'(a,e16.7,a,3i8)') 'WARNING, negative nr ', nr1d(k),        &
                         ' at i,j,k=', i,j,k
+#endif
             endif
             if (qs1d(k) .gt. qs_max) then
              imax_qs = i
@@ -1524,8 +1736,10 @@ MODULE module_mp_thompson
              kmax_qs = k
              qs_max = qs1d(k)
             elseif (qs1d(k) .lt. 0.0) then
+#ifndef _OPENACC
              write(*,'(a,e16.7,a,3i8)') 'WARNING, negative qs ', qs1d(k),        &
                         ' at i,j,k=', i,j,k
+#endif
             endif
             if (qi1d(k) .gt. qi_max) then
              imax_qi = i
@@ -1533,8 +1747,10 @@ MODULE module_mp_thompson
              kmax_qi = k
              qi_max = qi1d(k)
             elseif (qi1d(k) .lt. 0.0) then
+#ifndef _OPENACC
              write(*,'(a,e16.7,a,3i8)') 'WARNING, negative qi ', qi1d(k),        &
                         ' at i,j,k=', i,j,k
+#endif
             endif
             if (qg1d(k) .gt. qg_max) then
              imax_qg = i
@@ -1542,8 +1758,10 @@ MODULE module_mp_thompson
              kmax_qg = k
              qg_max = qg1d(k)
             elseif (qg1d(k) .lt. 0.0) then
+#ifndef _OPENACC
              write(*,'(a,e16.7,a,3i8)') 'WARNING, negative qg ', qg1d(k),        &
                         ' at i,j,k=', i,j,k
+#endif
             endif
             if (ni1d(k) .gt. ni_max) then
              imax_ni = i
@@ -1551,14 +1769,20 @@ MODULE module_mp_thompson
              kmax_ni = k
              ni_max = ni1d(k)
             elseif (ni1d(k) .lt. 0.0) then
+#ifndef _OPENACC
              write(*,'(a,e16.7,a,3i8)') 'WARNING, negative ni ', ni1d(k),        &
                         ' at i,j,k=', i,j,k
+#endif
             endif
             if (qv1d(k) .lt. 0.0) then
+#ifndef _OPENACC
              write(*,'(a,e16.7,a,3i8)') 'WARNING, negative qv ', qv1d(k),        &
                         ' at i,j,k=', i,j,k
+#endif
              if (k.lt.kte-2 .and. k.gt.kts+1) then
+#ifndef _OPENACC
                 write(*,*) '   below and above are: ', qv(i,k-1,j), qv(i,k+1,j)
+#endif
                 qv(i,k,j) = MAX(1.E-7, 0.5*(qv(i,k-1,j) + qv(i,k+1,j)))
              else
                 qv(i,k,j) = 1.E-7
@@ -1680,6 +1904,7 @@ MODULE module_mp_thompson
 
       enddo i_loop
       enddo j_loop
+!$acc end kernels
 
 ! DEBUG - GT
 !      write(*,'(a,7(a,e13.6,1x,a,i3,a,i3,a,i3,a,1x))') 'MP-GT:', &
@@ -1735,6 +1960,19 @@ MODULE module_mp_thompson
          deallocate (nrten1)
          deallocate (ncten1)
          deallocate (qcten1)
+!$acc exit data delete(        prw_vcdc1,                                 &
+!$acc                          prw_vcde1, tpri_inu1, tpri_ide1_d,         &
+!$acc                          tpri_ide1_s, tprs_ide1,                    &
+!$acc                          tprs_sde1_d, tprs_sde1_s, tprg_gde1_d,     &
+!$acc                          tprg_gde1_s, tpri_iha1, tpri_wfz1,         &
+!$acc                          tpri_rfz1, tprg_rfz1, tprs_scw1, tprg_scw1,&
+!$acc                          tprg_rcs1, tprs_rcs1,                      &
+!$acc                          tprr_rci1, tprg_rcg1,                      &
+!$acc                          tprw_vcd1_c, tprw_vcd1_e, tprr_sml1,       &
+!$acc                          tprr_gml1, tprr_rcg1,                      &
+!$acc                          tprr_rcs1, tprv_rev1,  tten1, qvten1,      &
+!$acc                          qrten1, qsten1, qgten1, qiten1, niten1,    &
+!$acc                          nrten1, ncten1, qcten1)
       end if deallocate_extended_diagnostics
 
       END SUBROUTINE mp_gt_driver
@@ -1824,7 +2062,51 @@ MODULE module_mp_thompson
                           tprw_vcd1_e, tprr_sml1, tprr_gml1, tprr_rcg1,    &
                           tprr_rcs1, tprv_rev1,                            &
                           tten1, qvten1, qrten1, qsten1,                   &
-                          qgten1, qiten1, niten1, nrten1, ncten1, qcten1) 
+                          qgten1, qiten1, niten1, nrten1, ncten1, qcten1,  &
+           tten, qvten, qcten, qiten, &
+           qrten, qsten, qgten, niten, nrten, ncten, nwfaten, nifaten, &
+           prw_vcd, &
+           pnc_wcd, pnc_wau, pnc_rcw, &
+           pnc_scw, pnc_gcw, &
+           pna_rca, pna_sca, pna_gca, &
+           pnd_rcd, pnd_scd, pnd_gcd, &
+           prr_wau, prr_rcw, prr_rcs, &
+           prr_rcg, prr_sml, prr_gml, &
+           prr_rci, prv_rev,          &
+           pnr_wau, pnr_rcs, pnr_rcg, &
+           pnr_rci, pnr_sml, pnr_gml, &
+           pnr_rev, pnr_rcr, pnr_rfz, &
+           pri_inu, pni_inu, pri_ihm, &
+           pni_ihm, pri_wfz, pni_wfz, &
+           pri_rfz, pni_rfz, pri_ide, &
+           pni_ide, pri_rci, pni_rci, &
+           pni_sci, pni_iau, pri_iha, pni_iha, &
+           prs_iau, prs_sci, prs_rcs, &
+           prs_scw, prs_sde, prs_ihm, &
+           prs_ide, &
+           prg_scw, prg_rfz, prg_gde, &
+           prg_gcw, prg_rci, prg_rcs, &
+           prg_rcg, prg_ihm, &
+           temp, pres, qv, &
+           rc, ri, rr, rs, rg, ni, nr, nc, nwfa, nifa, &
+           rr_tmp, nr_tmp, rg_tmp, &
+           rho, rhof, rhof2, &
+           qvs, qvsi, delQvs, &
+           satw, sati, ssatw, ssati, &
+           diffu, visco, vsc2, &
+           tcond, lvap, ocp, lvt2, &
+           ilamr, ilamg, N0_r, N0_g, &
+           mvd_r, mvd_c, &
+           smob, smo2, smo1, smo0, &
+           smoc, smod, smoe, smof, &
+           sed_r, sed_s, sed_g, sed_i, sed_n,sed_c, &
+           onstep, &
+           vtik, vtnik, vtrk, vtnrk, vtsk, vtgk,  &
+           vtck, vtnck, &
+           vts_boost, &
+           ksed1, &
+           L_qc, L_qi, L_qr, L_qs, L_qg)
+!$acc routine vector
 
 #ifdef MPI
       use mpi
@@ -1956,10 +2238,12 @@ MODULE module_mp_thompson
 !+---+
 
       debug_flag = .false.
+#ifndef _OPENACC
 !     if (ii.eq.901 .and. jj.eq.379) debug_flag = .true.
       if(debug_flag) then
         write(*, *) 'DEBUG INFO, mp_thompson at (i,j) ', ii, ', ', jj
       endif
+#endif
 
       no_micro = .true.
       dtsave = dt
@@ -2132,6 +2416,7 @@ MODULE module_mp_thompson
 !+---+-----------------------------------------------------------------+
 !> - Put column of data into local arrays.
 !+---+-----------------------------------------------------------------+
+!$acc loop independent reduction(.and.:no_micro) private(nu_c,xDc,lamc)
       do k = kts, kte
          temp(k) = t1d(k)
          qv(k) = MAX(1.E-10, qv1d(k))
@@ -2263,6 +2548,7 @@ MODULE module_mp_thompson
 !! Flatau et al. 1992; enthalpy (latent heat) of vaporization from
 !! Bohren & Albrecht 1998; others from Pruppacher & Klett 1978.
 !+---+-----------------------------------------------------------------+
+!$acc loop independent reduction(.and.:no_micro)
       do k = kts, kte
          tempc = temp(k) - 273.15
          rhof(k) = SQRT(RHO_NOT/rho(k))
@@ -2418,6 +2704,7 @@ MODULE module_mp_thompson
 !> - Compute warm-rain process terms (except evap done later).
 !+---+-----------------------------------------------------------------+
 
+!$acc loop independent
       do k = kts, kte
 
 !>  - Rain self-collection follows Seifert, 1994 and drop break-up
@@ -2497,6 +2784,7 @@ MODULE module_mp_thompson
 !> - Compute all frozen hydrometeor species' process terms.
 !+---+-----------------------------------------------------------------+
       if (.not. iiwarm) then
+!$acc loop independent
       do k = kts, kte
          vts_boost(k) = 1.0
          xDs = 0.0
@@ -3142,6 +3430,7 @@ MODULE module_mp_thompson
 !> - Calculate tendencies of all species but constrain the number of ice
 !! to reasonable values.
 !+---+-----------------------------------------------------------------+
+!$acc loop independent private(orho,lfus2)
       do k = kts, kte
          orho = 1./rho(k)
          lfus2 = lsub - lvap(k)
@@ -3498,6 +3787,7 @@ MODULE module_mp_thompson
 !! single timestep and explicit number of drops smaller than Dc_star
 !! from lookup table.
 !+---+-----------------------------------------------------------------+
+!$acc loop independent private(orho)
       do k = kts, kte
          orho = 1./rho(k)
          if ( (ssatw(k).gt. eps) .or. (ssatw(k).lt. -eps .and. &
@@ -3599,6 +3889,7 @@ MODULE module_mp_thompson
 !> - If still subsaturated, allow rain to evaporate, following
 !! Srivastava & Coen (1992).
 !+---+-----------------------------------------------------------------+
+!$acc loop independent private(orho)
       do k = kts, kte
          if ( (ssatw(k).lt. -eps) .and. L_qr(k) &
                      .and. (.not.(prw_vcd(k).gt. 0.)) ) then
@@ -3902,6 +4193,7 @@ MODULE module_mp_thompson
           nrten(k) = nrten(k) - sed_n(k)*odzq*onstep(1)*orho
           rr(k) = MAX(R1, rr(k) - sed_r(k)*odzq*DT*onstep(1))
           nr(k) = MAX(R2, nr(k) - sed_n(k)*odzq*DT*onstep(1))
+!$acc loop independent private(odzq,orho)
           do k = ksed1(1), kts, -1
              odzq = 1./dzq(k)
              orho = 1./rho(k)
@@ -3923,6 +4215,7 @@ MODULE module_mp_thompson
         dtcfl = dt
         niter = int(nstep/max(decfl,1)) + 1
         dtcfl = dt/niter
+!$acc loop independent private(dtcfl) private(rainsfc,vtr) reduction(+:pptrain)
         do n = 1, niter
           rr_tmp(:) = rr(:)
           nr_tmp(:) = nr(:)
@@ -3967,6 +4260,7 @@ MODULE module_mp_thompson
          sed_c(k) = vtck(k)*rc(k)
          sed_n(k) = vtnck(k)*nc(k)
       enddo
+!$acc loop independent private(odzq,orho)
       do k = ksed1(5), kts, -1
          odzq = 1./dzq(k)
          orho = 1./rho(k)
@@ -3993,6 +4287,7 @@ MODULE module_mp_thompson
          niten(k) = niten(k) - sed_n(k)*odzq*onstep(2)*orho
          ri(k) = MAX(R1, ri(k) - sed_i(k)*odzq*DT*onstep(2))
          ni(k) = MAX(R2, ni(k) - sed_n(k)*odzq*DT*onstep(2))
+!$acc loop independent private(odzq,orho)
          do k = ksed1(2), kts, -1
             odzq = 1./dzq(k)
             orho = 1./rho(k)
@@ -4024,6 +4319,7 @@ MODULE module_mp_thompson
          orho = 1./rho(k)
          qsten(k) = qsten(k) - sed_s(k)*odzq*onstep(3)*orho
          rs(k) = MAX(R1, rs(k) - sed_s(k)*odzq*DT*onstep(3))
+!$acc loop independent private(odzq,orho)
          do k = ksed1(3), kts, -1
             odzq = 1./dzq(k)
             orho = 1./rho(k)
@@ -4052,6 +4348,7 @@ MODULE module_mp_thompson
            orho = 1./rho(k)
            qgten(k) = qgten(k) - sed_g(k)*odzq*onstep(4)*orho
            rg(k) = MAX(R1, rg(k) - sed_g(k)*odzq*DT*onstep(4))
+!$acc loop independent private(odzq,orho)
            do k = ksed1(4), kts, -1
               odzq = 1./dzq(k)
               orho = 1./rho(k)
@@ -4070,6 +4367,7 @@ MODULE module_mp_thompson
         niter = int(nstep/max(decfl,1)) + 1
         dtcfl = dt/niter
 
+!$acc loop independent private(dtcfl) private(graulsfc)
         do n = 1, niter
           rg_tmp(:) = rg(:)
           call semi_lagrange_sedim(kte,dzq,vtgk,rg,graulsfc,dtcfl,R1)
@@ -4108,6 +4406,7 @@ MODULE module_mp_thompson
 !! instantly freeze any cloud water found below HGFR.
 !+---+-----------------------------------------------------------------+
       if (.not. iiwarm) then
+!$acc loop independent private(lfus2)
       do k = kts, kte
          xri = MAX(0.0, qi1d(k) + qiten(k)*DT)
          if ( (temp(k).gt. T_0) .and. (xri.gt. 0.0) ) then
@@ -4311,6 +4610,7 @@ MODULE module_mp_thompson
       INTEGER:: km, km_s, km_e
       DOUBLE PRECISION, DIMENSION(nbg):: vg, N_g
       DOUBLE PRECISION, DIMENSION(nbr):: vr, N_r
+!$acc declare create(vg,vr)
       DOUBLE PRECISION:: N0_r, N0_g, lam_exp, lamg, lamr
       DOUBLE PRECISION:: massg, massr, dvg, dvr, t1, t2, z1, z2, y1, y2
       LOGICAL force_read_thompson, write_thompson_tables
@@ -4366,11 +4666,16 @@ MODULE module_mp_thompson
           ENDIF
         ENDIF
 
+      IF (good .EQ. 1) THEN
+!$acc update device(tcg_racg, tmr_racg, tcr_gacr ,tmg_gacr, tnr_racg, tnr_gacr)
+      ENDIF
+
       IF (.NOT. good .EQ. 1 ) THEN
         if (thompson_table_writer) then
           write_thompson_tables = .true.
           write(0,*) "ThompMP: computing qr_acr_qg"
         endif
+!$acc kernels
         do n2 = 1, nbr
 !        vr(n2) = av_r*Dr(n2)**bv_r * DEXP(-fv_r*Dr(n2))
          vr(n2) = -0.1021 + 4.932E3*Dr(n2) - 0.9551E6*Dr(n2)*Dr(n2)     &
@@ -4380,6 +4685,7 @@ MODULE module_mp_thompson
         do n = 1, nbg
          vg(n) = av_g*Dg(n)**bv_g
         enddo
+!$acc end kernels
 
 !..Note values returned from wrf_dm_decomp1d are zero-based, add 1 for
 !.. fortran indices.  J. Michalakes, 2009Oct30.
@@ -4391,7 +4697,11 @@ MODULE module_mp_thompson
         km_e = ntb_r*ntb_r1 - 1
 #endif
 
+!$acc parallel loop collapse(3) private(N_r, N_g)
         do km = km_s, km_e
+         do j = 1, ntb_g
+         do i = 1, ntb_g1
+
          m = km / ntb_r1 + 1
          k = mod( km , ntb_r1 ) + 1
 
@@ -4402,8 +4712,6 @@ MODULE module_mp_thompson
             N_r(n2) = N0_r*Dr(n2)**mu_r *DEXP(-lamr*Dr(n2))*dtr(n2)
          enddo
 
-         do j = 1, ntb_g
-         do i = 1, ntb_g1
             lam_exp = (N0g_exp(i)*am_g*cgg(1)/r_g(j))**oge1
             lamg = lam_exp * (cgg(3)*ogg2*ogg1)**obmg
             N0_g = N0g_exp(i)/(cgg(2)*lam_exp) * lamg**cge(2)
@@ -4417,9 +4725,10 @@ MODULE module_mp_thompson
             z2 = 0.0d0
             y1 = 0.0d0
             y2 = 0.0d0
+!$acc loop collapse(2) independent reduction(+:t1,z1,y1,t2,y2,z2)
             do n2 = 1, nbr
-               massr = am_r * Dr(n2)**bm_r
                do n = 1, nbg
+                massr = am_r * Dr(n2)**bm_r
                   massg = am_g * Dg(n)**bm_g
 
                   dvg = 0.5d0*((vr(n2) - vg(n)) + DABS(vr(n2)-vg(n)))
@@ -4439,7 +4748,7 @@ MODULE module_mp_thompson
                   z2 = z2+ PI*.25*Ef_rg*(Dg(n)+Dr(n2))*(Dg(n)+Dr(n2)) &
                       *dvr*massg * N_g(n)* N_r(n2)
                enddo
- 97            continue
+ !97            continue
             enddo
             tcg_racg(i,j,k,m) = t1
             tmr_racg(i,j,k,m) = DMIN1(z1, r_r(m)*1.0d0)
@@ -4450,6 +4759,9 @@ MODULE module_mp_thompson
          enddo
          enddo
         enddo
+!$acc end parallel
+
+!$acc update host(tcg_racg,tmr_racg,tmg_gacr,tcr_gacr, tnr_racg, tnr_gacr)
 
         IF ( write_thompson_tables ) THEN
           write(0,*) "Writing "//qr_acr_qg_file//" in Thompson MP init"
@@ -4483,6 +4795,7 @@ MODULE module_mp_thompson
       INTEGER:: km, km_s, km_e
       DOUBLE PRECISION, DIMENSION(nbr):: vr, D1, N_r
       DOUBLE PRECISION, DIMENSION(nbs):: vs, N_s
+!$acc declare create(vr, D1, vs)
       DOUBLE PRECISION:: loga_, a_, b_, second, M0, M2, M3, Mrat, oM3
       DOUBLE PRECISION:: N0_r, lam_exp, lamr, slam1, slam2
       DOUBLE PRECISION:: dvs, dvr, masss, massr
@@ -4548,11 +4861,18 @@ MODULE module_mp_thompson
           ENDIF
         ENDIF
 
+      IF (good .EQ. 1 ) THEN
+!$acc update device(tcs_racs1, tmr_racs1,tcs_racs2,tmr_racs2,tcr_sacr1,tms_sacr1, &
+!$acc               tcr_sacr2, tms_sacr2,tnr_racs1,tnr_racs2,tnr_sacr1,tnr_sacr2)
+      ENDIF
+
       IF (.NOT. good .EQ. 1 ) THEN
         if (thompson_table_writer) then
           write_thompson_tables = .true.
           write(0,*) "ThompMP: computing qr_acr_qs"
         endif
+
+!$acc kernels
         do n2 = 1, nbr
 !        vr(n2) = av_r*Dr(n2)**bv_r * DEXP(-fv_r*Dr(n2))
          vr(n2) = -0.1021 + 4.932E3*Dr(n2) - 0.9551E6*Dr(n2)*Dr(n2)     &
@@ -4563,6 +4883,7 @@ MODULE module_mp_thompson
         do n = 1, nbs
          vs(n) = 1.5*av_s*Ds(n)**bv_s * DEXP(-fv_s*Ds(n))
         enddo
+!$acc end kernels
 
 !..Note values returned from wrf_dm_decomp1d are zero-based, add 1 for
 !.. fortran indices.  J. Michalakes, 2009Oct30.
@@ -4574,6 +4895,7 @@ MODULE module_mp_thompson
         km_e = ntb_r*ntb_r1 - 1
 #endif
 
+!$acc kernels loop independent private(N_r)
         do km = km_s, km_e
          m = km / ntb_r1 + 1
          k = mod( km , ntb_r1 ) + 1
@@ -4585,6 +4907,7 @@ MODULE module_mp_thompson
             N_r(n2) = N0_r*Dr(n2)**mu_r * DEXP(-lamr*Dr(n2))*dtr(n2)
          enddo
 
+!$acc loop collapse(2) private(N_s)
          do j = 1, ntb_t
             do i = 1, ntb_s
 
@@ -4645,9 +4968,10 @@ MODULE module_mp_thompson
                y2 = 0.0d0
                y3 = 0.0d0
                y4 = 0.0d0
+!$acc loop collapse(2) independent reduction(+:z3,z4,y3,t3,z1,y1,t1,y2,z2,t2,t4,y4)
                do n2 = 1, nbr
-                  massr = am_r * Dr(n2)**bm_r
                   do n = 1, nbs
+                     massr = am_r * Dr(n2)**bm_r
                      masss = am_s * Ds(n)**bm_s
 
                      dvs = 0.5d0*((vr(n2) - vs(n)) + DABS(vr(n2)-vs(n)))
@@ -4702,6 +5026,10 @@ MODULE module_mp_thompson
             enddo
          enddo
         enddo
+!$acc end kernels
+
+!$acc update host (tcs_racs1, tmr_racs1,tcs_racs2,tmr_racs2,tcr_sacr1,tms_sacr1, &
+!$acc              tcr_sacr2, tms_sacr2,tnr_racs1,tnr_racs2,tnr_sacr1,tnr_sacr2)
 
         IF ( write_thompson_tables ) THEN
           write(0,*) "Writing "//qr_acr_qs_file//" in Thompson MP init"
@@ -4745,6 +5073,7 @@ MODULE module_mp_thompson
       DOUBLE PRECISION:: N_r, N_c
       DOUBLE PRECISION, DIMENSION(nbr):: massr
       DOUBLE PRECISION, DIMENSION(nbc):: massc
+!$acc declare create(N_r,massr,N_c,massc)
       DOUBLE PRECISION:: sum1, sum2, sumn1, sumn2, &
                          prob, vol, Texp, orho_w, &
                          lam_exp, lamr, N0_r, lamc, N0_c, y
@@ -4803,6 +5132,10 @@ MODULE module_mp_thompson
           ENDIF
         ENDIF
 
+      IF (good .EQ. 1 ) THEN
+!$acc update device (tpi_qrfz, tni_qrfz, tpg_qrfz, tnr_qrfz, tpi_qcfz, tni_qcfz) 
+      ENDIF
+
       IF (.NOT. good .EQ. 1 ) THEN
         if (thompson_table_writer) then
           write_thompson_tables = .true.
@@ -4810,22 +5143,25 @@ MODULE module_mp_thompson
         endif
 
         orho_w = 1./rho_w
-
+!$acc kernels
         do n2 = 1, nbr
          massr(n2) = am_r*Dr(n2)**bm_r
         enddo
         do n = 1, nbc
          massc(n) = am_r*Dc(n)**bm_r
         enddo
+!$acc end kernels
 
 !..Freeze water (smallest drops become cloud ice, otherwise graupel).
+
+!$acc kernels
         do m = 1, ntb_IN
-        T_adjust = MAX(-3.0, MIN(3.0 - ALOG10(Nt_IN(m)), 3.0))
         do k = 1, 45
+            T_adjust = MAX(-3.0, MIN(3.0 - ALOG10(Nt_IN(m)), 3.0))
 !         print*, ' Freezing water for temp = ', -k
          Texp = DEXP( DFLOAT(k) - T_adjust*1.0D0 ) - 1.0D0
-!$OMP PARALLEL DO SCHEDULE(dynamic) num_threads(threads) &
-!$OMP PRIVATE(j,i,lam_exp,lamr,N0_r,sum1,sum2,sumn1,sumn2,n2,N_r,vol,prob)
+!!$OMP PARALLEL DO SCHEDULE(dynamic) num_threads(threads) &
+!!$OMP PRIVATE(j,i,lam_exp,lamr,N0_r,sum1,sum2,sumn1,sumn2,n2,N_r,vol,prob)
          do j = 1, ntb_r1
             do i = 1, ntb_r
                lam_exp = (N0r_exp(j)*am_r*crg(1)/r_r(i))**ore1
@@ -4854,10 +5190,10 @@ MODULE module_mp_thompson
                tnr_qrfz(i,j,k,m) = sumn2
             enddo
          enddo
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
-!$OMP PARALLEL DO SCHEDULE(dynamic) num_threads(threads) &
-!$OMP PRIVATE(j,i,nu_c,lamc,N0_c,sum1,sumn2,vol,prob,N_c)
+!!$OMP PARALLEL DO SCHEDULE(dynamic) num_threads(threads) &
+!!$OMP PRIVATE(j,i,nu_c,lamc,N0_c,sum1,sumn2,vol,prob,N_c)
          do j = 1, nbc
             nu_c = MIN(15, NINT(1000.E6/t_Nc(j)) + 2)
             do i = 1, ntb_c
@@ -4877,10 +5213,12 @@ MODULE module_mp_thompson
                tni_qcfz(i,j,k,m) = sumn2
             enddo
          enddo
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
         enddo
         enddo
+!$acc end kernels
 
+!$acc update host (tpi_qrfz, tni_qrfz, tpg_qrfz, tnr_qrfz, tpi_qcfz, tni_qcfz) 
         IF ( write_thompson_tables ) THEN
           write(0,*) "Writing "//freeze_h2o_file//" in Thompson MP init"
           OPEN(63,file=freeze_h2o_file,form="unformatted",err=9234)
@@ -4924,6 +5262,7 @@ MODULE module_mp_thompson
 
 !+---+
 
+!$acc parallel loop collapse(2) private(N_i)
       do j = 1, ntb_i1
          do i = 1, ntb_i
             lami = (am_i*cig(2)*oig1*Nt_i(j)/r_i(i))**obmi
@@ -4954,6 +5293,7 @@ MODULE module_mp_thompson
             tni_iaus(i,j) = t2
          enddo
       enddo
+!$acc end parallel
 
       end subroutine qi_aut_qs
 !ctrlL
@@ -4971,6 +5311,7 @@ MODULE module_mp_thompson
       DOUBLE PRECISION:: p, yc0, F, G, H, z, K0, X
       INTEGER:: i, j
 
+!$acc kernels
       do j = 1, nbc
       do i = 1, nbr
          Ef_rw = 0.0
@@ -5017,6 +5358,7 @@ MODULE module_mp_thompson
 
       enddo
       enddo
+!$acc end kernels
 
       end subroutine table_Efrw
 !ctrlL
@@ -5034,9 +5376,10 @@ MODULE module_mp_thompson
       DOUBLE PRECISION:: p, yc0, F, G, H, z, K0
       INTEGER:: i, j
 
+!$acc parallel loop collapse(2)
       do j = 1, nbc
-      vtc = 1.19D4 * (1.0D4*Dc(j)*Dc(j)*0.25D0)
       do i = 1, nbs
+       vtc = 1.19D4 * (1.0D4*Dc(j)*Dc(j)*0.25D0)
          vts = av_s*Ds(i)**bv_s * DEXP(-fv_s*Ds(i)) - vtc
          Ds_m = (am_s*Ds(i)**bm_s / am_r)**obmr
          p = Dc(j)/Ds_m
@@ -5060,6 +5403,7 @@ MODULE module_mp_thompson
 
       enddo
       enddo
+!$acc end parallel
 
       end subroutine table_Efsw
 !ctrlL
@@ -5069,7 +5413,7 @@ MODULE module_mp_thompson
 !! snow, graupel) of aerosols.  Follows Wang et al, 2010, ACP, which
 !! follows Slinn (1983).
       real function Eff_aero(D, Da, visc,rhoa,Temp,species)
-
+!$acc routine seq
       implicit none
       real:: D, Da, visc, rhoa, Temp
       character(LEN=1):: species
@@ -5120,21 +5464,24 @@ MODULE module_mp_thompson
 !..Local variables
       INTEGER:: i, j, k, n
       DOUBLE PRECISION, DIMENSION(nbc):: N_c, massc
+!$acc declare create(massc)
       DOUBLE PRECISION:: summ, summ2, lamc, N0_c
       INTEGER:: nu_c
 !      DOUBLE PRECISION:: Nt_r, N0, lam_exp, lam
 !      REAL:: xlimit_intg
 
+!$acc kernels
       do n = 1, nbc
          massc(n) = am_r*Dc(n)**bm_r
       enddo
 
+!$acc loop collapse(2) independent private(N_c)
       do k = 1, nbc
-         nu_c = MIN(15, NINT(1000.E6/t_Nc(k)) + 2)
          do j = 1, ntb_c
-            lamc = (t_Nc(k)*am_r* ccg(2,nu_c)*ocg1(nu_c) / r_c(j))**obmr
-            N0_c = t_Nc(k)*ocg1(nu_c) * lamc**cce(1,nu_c)
             do i = 1, nbc
+            nu_c = MIN(15, NINT(1000.E6/t_Nc(k)) + 2)
+               lamc = (t_Nc(k)*am_r* ccg(2,nu_c)*ocg1(nu_c) / r_c(j))**obmr
+               N0_c = t_Nc(k)*ocg1(nu_c) * lamc**cce(1,nu_c)
 !-GT           tnc_wev(i,j,k) = GAMMP(nu_c+1., SNGL(Dc(i)*lamc))*t_Nc(k)
                N_c(i) = N0_c* Dc(i)**nu_c*EXP(-lamc*Dc(i))*dtc(i)
 !     if(j.eq.18 .and. k.eq.50) print*, ' N_c = ', N_c(i)
@@ -5150,6 +5497,7 @@ MODULE module_mp_thompson
             enddo
          enddo
       enddo
+!$acc end kernels
 
 !
 !..To do the same thing for rain.
@@ -5246,6 +5594,8 @@ MODULE module_mp_thompson
       READ(iunit_mp_th1,ERR=9010) tnccn_act
 !sms$serial end
 
+!$acc update device(tnccn_act)
+
       RETURN
  9009 CONTINUE
       WRITE( errmess , '(A,I2)' ) 'module_mp_thompson: error opening CCN_ACTIVATE.BIN on unit ',iunit_mp_th1
@@ -5268,7 +5618,7 @@ MODULE module_mp_thompson
 !.. updraft velocity could easily be negative, we could use the temp
 !.. and its tendency to diagnose a pretend postive updraft velocity.
       real function activ_ncloud(Tt, Ww, NCCN)
-
+!$acc routine seq
       implicit none
       REAL, INTENT(IN):: Tt, Ww, NCCN
       REAL:: n_local, w_local
@@ -5350,6 +5700,7 @@ MODULE module_mp_thompson
 !! Returns the incomplete gamma function q(a,x) evaluated by its
 !! continued fraction representation as gammcf.
       SUBROUTINE GCF(GAMMCF,A,X,GLN)
+!$acc routine seq
 ! RETURNS THE INCOMPLETE GAMMA FUNCTION Q(A,X) EVALUATED BY ITS
 ! CONTINUED FRACTION REPRESENTATION AS GAMMCF.  ALSO RETURNS
 !     --- LN(GAMMA(A)) AS GLN.  THE CONTINUED FRACTION IS EVALUATED BY
@@ -5380,7 +5731,9 @@ MODULE module_mp_thompson
         H=H*DEL
         IF(ABS(DEL-1.).LT.gEPS)GOTO 1
  11   CONTINUE
+#ifndef _OPENACC
       PRINT *, 'A TOO LARGE, ITMAX TOO SMALL IN GCF'
+#endif
  1    GAMMCF=EXP(-X+A*LOG(X)-GLN)*H
       END SUBROUTINE GCF
 !  (C) Copr. 1986-92 Numerical Recipes Software 2.02
@@ -5389,6 +5742,7 @@ MODULE module_mp_thompson
 !! Returns the incomplete gamma function p(a,x) evaluated by
 !! its series representation as gamser.
       SUBROUTINE GSER(GAMSER,A,X,GLN)
+!$acc routine seq
 !     --- RETURNS THE INCOMPLETE GAMMA FUNCTION P(A,X) EVALUATED BY ITS
 !     --- ITS SERIES REPRESENTATION AS GAMSER.  ALSO RETURNS LN(GAMMA(A))
 !     --- AS GLN.
@@ -5415,7 +5769,9 @@ MODULE module_mp_thompson
         SUM=SUM+DEL
         IF(ABS(DEL).LT.ABS(SUM)*gEPS)GOTO 1
  11   CONTINUE
+#ifndef _OPENACC
       PRINT *,'A TOO LARGE, ITMAX TOO SMALL IN GSER'
+#endif
  1    GAMSER=SUM*EXP(-X+A*LOG(X)-GLN)
       END SUBROUTINE GSER
 !  (C) Copr. 1986-92 Numerical Recipes Software 2.02
@@ -5423,6 +5779,7 @@ MODULE module_mp_thompson
 !>\ingroup aathompson
 !! Returns the value ln(gamma(xx)) for xx > 0.
       REAL FUNCTION GAMMLN(XX)
+!$acc routine seq
 !     --- RETURNS THE VALUE LN(GAMMA(XX)) FOR XX > 0.
       IMPLICIT NONE
       REAL, INTENT(IN):: XX
@@ -5449,6 +5806,7 @@ MODULE module_mp_thompson
 
 !>\ingroup aathompson
       REAL FUNCTION GAMMP(A,X)
+!$acc routine seq
 !     --- COMPUTES THE INCOMPLETE GAMMA FUNCTION P(A,X)
 !     --- SEE ABRAMOWITZ AND STEGUN 6.5.1
 !     --- USES GCF,GSER
@@ -5457,7 +5815,9 @@ MODULE module_mp_thompson
       REAL:: GAMMCF,GAMSER,GLN
       GAMMP = 0.
       IF((X.LT.0.) .OR. (A.LE.0.)) THEN
+#ifndef _OPENACC
         PRINT *, 'BAD ARGUMENTS IN GAMMP'
+#endif
         RETURN
       ELSEIF(X.LT.A+1.)THEN
         CALL GSER(GAMSER,A,X,GLN)
@@ -5471,6 +5831,7 @@ MODULE module_mp_thompson
 !+---+-----------------------------------------------------------------+
 !>\ingroup aathompson
       REAL FUNCTION WGAMMA(y)
+!$acc routine seq
 
       IMPLICIT NONE
       REAL, INTENT(IN):: y
@@ -5483,6 +5844,7 @@ MODULE module_mp_thompson
 !! THIS FUNCTION CALCULATES THE LIQUID SATURATION VAPOR MIXING RATIO AS
 !! A FUNCTION OF TEMPERATURE AND PRESSURE
       REAL FUNCTION RSLF(P,T)
+!$acc routine seq
 
       IMPLICIT NONE
       REAL, INTENT(IN):: P, T
@@ -5518,6 +5880,7 @@ MODULE module_mp_thompson
 !! THIS FUNCTION CALCULATES THE ICE SATURATION VAPOR MIXING RATIO AS A
 !! FUNCTION OF TEMPERATURE AND PRESSURE
       REAL FUNCTION RSIF(P,T)
+!$acc routine seq
 
       IMPLICIT NONE
       REAL, INTENT(IN):: P, T
@@ -5548,6 +5911,8 @@ MODULE module_mp_thompson
 !+---+-----------------------------------------------------------------+
 !>\ingroup aathompson
       real function iceDeMott(tempc, qv, qvs, qvsi, rho, nifa)
+!$acc routine seq
+
       implicit none
 
       REAL, INTENT(IN):: tempc, qv, qvs, qvsi, rho, nifa
@@ -5622,6 +5987,8 @@ MODULE module_mp_thompson
 !! rate should be lower than original paper, so J_rate is reduced
 !! by two orders of magnitude.
       real function iceKoop(temp, qv, qvs, naero, dt)
+!$acc routine seq
+
       implicit none
 
       REAL, INTENT(IN):: temp, qv, qvs, naero, DT
@@ -5652,6 +6019,8 @@ MODULE module_mp_thompson
 !>\ingroup aathompson
 !! Helper routine for Phillips et al (2008) ice nucleation.  Trude
       REAL FUNCTION delta_p (yy, y1, y2, aa, bb)
+!$acc routine seq
+
       IMPLICIT NONE
 
       REAL, INTENT(IN):: yy, y1, y2, aa, bb
@@ -5695,6 +6064,7 @@ MODULE module_mp_thompson
 !! distribution, not the second part, which is the larger sizes.
       subroutine calc_effectRad (t1d, p1d, qv1d, qc1d, nc1d, qi1d, ni1d, qs1d,   &
      &                re_qc1d, re_qi1d, re_qs1d, kts, kte)
+!$acc routine seq
 
       IMPLICIT NONE
 
@@ -5811,6 +6181,7 @@ MODULE module_mp_thompson
       subroutine calc_refl10cm (qv1d, qc1d, qr1d, nr1d, qs1d, qg1d, &
                t1d, p1d, dBZ, rand1, kts, kte, ii, jj, melti,       &
                vt_dBZ, first_time_step)
+!$acc routine seq
 
       IMPLICIT NONE
 
@@ -6129,6 +6500,7 @@ MODULE module_mp_thompson
 !
 !-------------------------------------------------------------------
       SUBROUTINE semi_lagrange_sedim(km,dzl,wwl,rql,precip,dt,R1)
+!$acc routine seq
 !-------------------------------------------------------------------
 !
 ! This routine is a semi-Lagrangain forward advection for hydrometeors
