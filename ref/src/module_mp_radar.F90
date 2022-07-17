@@ -39,17 +39,25 @@
       INTEGER, PARAMETER, PUBLIC:: nrbins = 50
       DOUBLE PRECISION, DIMENSION(nrbins+1), PUBLIC:: xxDx
       DOUBLE PRECISION, DIMENSION(nrbins), PUBLIC:: xxDs,xdts,xxDg,xdtg
+!$acc declare create(xxDx,xxDs,xdts,xxDg,xdtg)
       DOUBLE PRECISION, PARAMETER, PUBLIC:: lamda_radar = 0.10           ! in meters
       DOUBLE PRECISION, PUBLIC:: K_w, PI5, lamda4
       COMPLEX*16, PUBLIC:: m_w_0, m_i_0
       DOUBLE PRECISION, DIMENSION(nrbins+1), PUBLIC:: simpson
+!$acc declare create(K_w, PI5, lamda4, m_w_0, m_i_0, simpson)
       DOUBLE PRECISION, DIMENSION(3), PARAMETER, PUBLIC:: basis =       &
                            (/1.d0/3.d0, 4.d0/3.d0, 1.d0/3.d0/)
+!$acc declare copyin(basis)
       REAL, DIMENSION(4), PUBLIC:: xcre, xcse, xcge, xcrg, xcsg, xcgg
+!$acc declare create(xcre, xcse, xcge, xcrg, xcsg, xcgg)
       REAL, PUBLIC:: xam_r, xbm_r, xmu_r, xobmr
       REAL, PUBLIC:: xam_s, xbm_s, xmu_s, xoams, xobms, xocms
       REAL, PUBLIC:: xam_g, xbm_g, xmu_g, xoamg, xobmg, xocmg
       REAL, PUBLIC:: xorg2, xosg2, xogg2
+!$acc declare create(xam_r, xbm_r, xmu_r, xobmr, &
+!$acc                xam_s, xbm_s, xmu_s, xoams, xobms, xocms, &
+!$acc                xam_g, xbm_g, xmu_g, xoamg, xobmg, xocmg, &
+!$acc                xorg2, xosg2, xogg2)
 
       INTEGER, PARAMETER, PUBLIC:: slen = 20
       CHARACTER(len=slen), PUBLIC::                                     &
@@ -57,6 +65,11 @@
               hoststring_s, hostmatrixstring_s, hostinclusionstring_s,  &
               mixingrulestring_g, matrixstring_g, inclusionstring_g,    &
               hoststring_g, hostmatrixstring_g, hostinclusionstring_g
+!$acc declare create(mixingrulestring_s, matrixstring_s, inclusionstring_s,  &
+!$acc         hoststring_s, hostmatrixstring_s, hostinclusionstring_s,  &
+!$acc         mixingrulestring_g, matrixstring_g, inclusionstring_g,    &
+!$acc         hoststring_g, hostmatrixstring_g, hostinclusionstring_g)
+
 
 !> Single melting snow/graupel particle 90% meltwater on external sfc
       DOUBLE PRECISION, PARAMETER:: melt_outside_s = 0.9d0
@@ -74,6 +87,7 @@
 
       IMPLICIT NONE
       INTEGER:: n
+
       PI5 = 3.14159*3.14159*3.14159*3.14159*3.14159
       lamda4 = lamda_radar*lamda_radar*lamda_radar*lamda_radar
       m_w_0 = m_complex_water_ray (lamda_radar, 0.0d0)
@@ -88,6 +102,7 @@
          simpson(n+1) = simpson(n+1) + basis(2)
          simpson(n+2) = simpson(n+2) + basis(3)
       enddo
+!$acc update device(PI5,simpson,lamda4,k_w,m_w_0, m_i_0)
 
       do n = 1, slen
          mixingrulestring_s(n:n) = char(0)
@@ -117,7 +132,10 @@
       inclusionstring_g = 'spheroidal'
       hostmatrixstring_g = 'icewater'
       hostinclusionstring_g = 'spheroidal'
+!$acc update device(mixingrulestring_s, matrixstring_s, inclusionstring_s,hoststring_s, hostmatrixstring_s, hostinclusionstring_s, &
+!$acc               mixingrulestring_g, matrixstring_g, inclusionstring_g,hoststring_g, hostmatrixstring_g, hostinclusionstring_g)
 
+!$acc kernels
 !..Create bins of snow (from 100 microns up to 2 cm).
       xxDx(1) = 100.D-6
       xxDx(nrbins+1) = 0.02d0
@@ -182,8 +200,10 @@
       xoamg = 1./xam_g
       xobmg = 1./xbm_g
       xocmg = xoamg**xobmg
+!$acc end kernels
 
-
+!$acc update host(xxDx,xxDs,xdts,xxDg,xdtg)
+!$acc update host(xcre, xcse, xcge, xcrg, xcsg, xcgg)
       end subroutine radar_init
 
 !+---+-----------------------------------------------------------------+
@@ -191,7 +211,7 @@
 
 !>\ingroup thompson_radar
       COMPLEX*16 FUNCTION m_complex_water_ray(lambda,T)
-
+!$acc routine seq
 !>      Complex refractive Index of Water as function of Temperature T
 !!      [deg C] and radar wavelength lambda [m]; valid for
 !!      lambda in [0.001,1.0] m; T in [-10.0,30.0] deg C
@@ -226,7 +246,7 @@
 !+---+-----------------------------------------------------------------+
       
       COMPLEX*16 FUNCTION m_complex_ice_maetzler(lambda,T)
-      
+!$acc routine seq      
 !      complex refractive index of ice as function of Temperature T
 !      [deg C] and radar wavelength lambda [m]; valid for
 !      lambda in [0.0001,30] m; T in [-250.0,0.0] C
@@ -270,7 +290,7 @@
                      meltratio_outside, m_w, m_i, lambda, C_back,       &
                      mixingrule,matrix,inclusion,                       &
                      host,hostmatrix,hostinclusion)
-
+!$acc routine seq
       IMPLICIT NONE
 
       DOUBLE PRECISION, INTENT(in):: x_g, a_geo, b_geo, fmelt, lambda,  &
@@ -367,7 +387,7 @@
       complex*16 function get_m_mix_nested (m_a, m_i, m_w, volair,      &
                      volice, volwater, mixingrule, host, matrix,        &
                      inclusion, hostmatrix, hostinclusion, cumulerror)
-
+!$acc routine seq
       IMPLICIT NONE
 
       DOUBLE PRECISION, INTENT(in):: volice, volair, volwater
@@ -389,7 +409,9 @@
       if (host .eq. 'air') then
 
        if (matrix .eq. 'air') then
+#ifndef _OPENACC
         write(*,*) 'GET_M_MIX_NESTED: bad matrix: ', matrix
+#endif
         cumulerror = cumulerror + 1
        else
         vol1 = volice / MAX(volice+volwater,1d-10)
@@ -409,8 +431,10 @@
                          'ice', hostinclusion, error)
          cumulerror = cumulerror + error
         else
+#ifndef _OPENACC
          write(*,*) 'GET_M_MIX_NESTED: bad hostmatrix: ',        &
                            hostmatrix
+#endif
          cumulerror = cumulerror + 1
         endif
        endif
@@ -418,7 +442,9 @@
       elseif (host .eq. 'ice') then
 
        if (matrix .eq. 'ice') then
+#ifndef _OPENACC
         write(*,*) 'GET_M_MIX_NESTED: bad matrix: ', matrix
+#endif
         cumulerror = cumulerror + 1
        else
         vol1 = volair / MAX(volair+volwater,1d-10)
@@ -438,8 +464,10 @@
                          'air', hostinclusion, error)
          cumulerror = cumulerror + error          
         else
+#ifndef _OPENACC
          write(*,*) 'GET_M_MIX_NESTED: bad hostmatrix: ',        &
                            hostmatrix
+#endif
          cumulerror = cumulerror + 1
         endif
        endif
@@ -447,7 +475,9 @@
       elseif (host .eq. 'water') then
 
        if (matrix .eq. 'water') then
+#ifndef _OPENACC
         write(*,*) 'GET_M_MIX_NESTED: bad matrix: ', matrix
+#endif
         cumulerror = cumulerror + 1
        else
         vol1 = volair / MAX(volice+volair,1d-10)
@@ -467,8 +497,10 @@
                          'ice', hostinclusion, error)
          cumulerror = cumulerror + error          
         else
+#ifndef _OPENACC
          write(*,*) 'GET_M_MIX_NESTED: bad hostmatrix: ',         &
                            hostmatrix
+#endif
          cumulerror = cumulerror + 1
         endif
        endif
@@ -481,12 +513,16 @@
        cumulerror = cumulerror + error
         
       else
+#ifndef _OPENACC
        write(*,*) 'GET_M_MIX_NESTED: unknown matrix: ', host
+#endif
        cumulerror = cumulerror + 1
       endif
 
       IF (cumulerror .ne. 0) THEN
+#ifndef _OPENACC
        write(*,*) 'GET_M_MIX_NESTED: error encountered'
+#endif
        get_m_mix_nested = CMPLX(1.0d0,0.0d0)    
       endif
 
@@ -497,7 +533,7 @@
 !!
       COMPLEX*16 FUNCTION get_m_mix (m_a, m_i, m_w, volair, volice,     &
                      volwater, mixingrule, matrix, inclusion, error)
-
+!$acc routine seq
       IMPLICIT NONE
 
       DOUBLE PRECISION, INTENT(in):: volice, volair, volwater
@@ -519,17 +555,23 @@
         get_m_mix = m_complex_maxwellgarnett(volair, volwater, volice,  &
                            m_a, m_w, m_i, inclusion, error)
        else
+#ifndef _OPENACC
         write(*,*) 'GET_M_MIX: unknown matrix: ', matrix
+#endif
         error = 1
        endif
 
       else
+#ifndef _OPENACC
        write(*,*) 'GET_M_MIX: unknown mixingrule: ', mixingrule
+#endif
        error = 2
       endif
 
       if (error .ne. 0) then
+#ifndef _OPENACC
        write(*,*) 'GET_M_MIX: error encountered'
+#endif
       endif
 
       END FUNCTION get_m_mix
@@ -539,7 +581,7 @@
 !!
       COMPLEX*16 FUNCTION m_complex_maxwellgarnett(vol1, vol2, vol3,    &
                      m1, m2, m3, inclusion, error)
-
+!$acc routine seq
       IMPLICIT NONE
 
       COMPLEX*16 :: m1, m2, m3
@@ -552,8 +594,10 @@
       error = 0
 
       if (DABS(vol1+vol2+vol3-1.0d0) .gt. 1d-6) then
+#ifndef _OPENACC
        write(*,*) 'M_COMPLEX_MAXWELLGARNETT: sum of the ',       &
               'partial volume fractions is not 1...ERROR'
+#endif
        m_complex_maxwellgarnett=CMPLX(-999.99d0,-999.99d0)
        error = 1
        return
@@ -570,8 +614,10 @@
        beta2 = 2.0d0*m1t/(m2t-m1t) * (m2t/(m2t-m1t)*LOG(m2t/m1t)-1.0d0)
        beta3 = 2.0d0*m1t/(m3t-m1t) * (m3t/(m3t-m1t)*LOG(m3t/m1t)-1.0d0)
       else
+#ifndef _OPENACC
        write(*,*) 'M_COMPLEX_MAXWELLGARNETT: ',                  &
                          'unknown inclusion: ', inclusion
+#endif
        m_complex_maxwellgarnett=DCMPLX(-999.99d0,-999.99d0)
        error = 1
        return
@@ -586,6 +632,7 @@
 !+---+-----------------------------------------------------------------+
 !>\ingroup thompson_radar
       REAL FUNCTION GAMMLN(XX)
+!$acc routine seq
 !     --- RETURNS THE VALUE LN(GAMMA(XX)) FOR XX > 0.
       IMPLICIT NONE
       REAL, INTENT(IN):: XX
@@ -612,7 +659,7 @@
 !+---+-----------------------------------------------------------------+
 !>\ingroup thompson_radar
       REAL FUNCTION WGAMMA(y)
-
+!$acc routine seq
       IMPLICIT NONE
       REAL, INTENT(IN):: y
 

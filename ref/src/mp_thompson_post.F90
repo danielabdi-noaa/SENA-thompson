@@ -62,6 +62,7 @@ contains
       real(kind_phys), dimension(:,:), intent(in)    :: tgrs_save
       real(kind_phys), dimension(:,:), intent(inout) :: tgrs
       real(kind_phys), dimension(:,:), intent(in)    :: prslk
+!$acc declare copyin(tgrs_save,prslk) copy(tgrs)
       real(kind_phys),                 intent(in)    :: dtp
       real(kind_phys),                 intent(in)    :: ttendlim
       integer,                         intent(in)    :: kdt
@@ -75,6 +76,7 @@ contains
 
       ! Local variables
       real(kind_phys), dimension(1:ncol,1:nlev) :: mp_tend
+!$acc declare create(mp_tend)
       integer :: i, k
 #ifdef DEBUG
       integer :: events
@@ -94,6 +96,7 @@ contains
       ! If limiter is deactivated, return immediately
       if (.not.apply_limiter) return
 
+!$acc kernels
       ! mp_tend and ttendlim are expressed in potential temperature
       mp_tend = (tgrs - tgrs_save)/prslk
 
@@ -114,6 +117,7 @@ contains
             tgrs(i,k) = tgrs_save(i,k) + mp_tend(i,k)*prslk(i,k)
          end do
       end do
+!$acc end kernels
 
 #ifdef DEBUG
       if (events > 0) then

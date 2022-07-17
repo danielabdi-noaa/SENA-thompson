@@ -30,6 +30,7 @@ module mp_thompson_pre
          integer,                   intent(in   ) :: nlev
          real(kind_phys),           intent(in   ) :: tgrs(:,:)
          real(kind_phys),           intent(  out) :: tgrs_save(:,:)
+!$acc declare copyin(tgrs) copyout(tgrs_save)
 
          ! CCPP error handling
          character(len=*),          intent(  out) :: errmsg
@@ -40,7 +41,9 @@ module mp_thompson_pre
          errflg = 0
 
          ! Save current air temperature for tendency limiters in mp_thompson_post
+!$acc kernels
          tgrs_save = tgrs
+!$acc end kernels
 
       end subroutine mp_thompson_pre_run
 
