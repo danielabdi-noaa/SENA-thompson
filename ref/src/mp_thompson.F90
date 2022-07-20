@@ -59,6 +59,7 @@ module mp_thompson
          real(kind_phys),           intent(inout) :: qg(:,:)
          real(kind_phys),           intent(inout) :: ni(:,:)
          real(kind_phys),           intent(inout) :: nr(:,:)
+!$acc declare copy(spechum,qc,qr,qi,qs,qg,ni,nr)
          ! Aerosols
          logical,                   intent(in   ) :: is_aerosol_aware
          real(kind_phys),           intent(inout) :: nc(:,:)
@@ -66,11 +67,13 @@ module mp_thompson
          real(kind_phys),           intent(inout) :: nifa(:,:)
          real(kind_phys),           intent(inout) :: nwfa2d(:)
          real(kind_phys),           intent(inout) :: nifa2d(:)
+!$acc declare copy(nc,nwfa,nifa,nwfa2d,nifa2d)
          ! State variables
          real(kind_phys),           intent(in   ) :: tgrs(:,:)
          real(kind_phys),           intent(in   ) :: prsl(:,:)
          real(kind_phys),           intent(in   ) :: phil(:,:)
          real(kind_phys),           intent(in   ) :: area(:)
+!$acc declare copyin(tgrs,prsl,phil,area)
          ! MPI information
          integer,                   intent(in   ) :: mpicomm
          integer,                   intent(in   ) :: mpirank
@@ -80,6 +83,7 @@ module mp_thompson
          ! Extended diagnostics
          logical,                   intent(in   ) :: ext_diag
          real(kind_phys),           intent(in   ) :: diag3d(:,:,:)
+!$acc declare copyin(diag3d)
          ! CCPP error handling
          character(len=*),          intent(  out) :: errmsg
          integer,                   intent(  out) :: errflg
@@ -90,8 +94,10 @@ module mp_thompson
          real(kind_phys) :: rho(1:ncol,1:nlev)      ! kg m-3
          real(kind_phys) :: orho(1:ncol,1:nlev)     ! m3 kg-1
          real(kind_phys) :: nc_local(1:ncol,1:nlev) ! needed because nc is only allocated if is_aerosol_aware is true
+!$acc declare create(qv,hgt,rho,orho,nc_local)
          !
          real (kind=kind_phys) :: h_01, z1, niIN3, niCCN3
+         real(kind_phys) :: maxv
          integer :: i, k
 
          ! Initialize the CCPP error handling variables
@@ -127,6 +133,7 @@ module mp_thompson
            return
          end if
 
+!$acc kernels
          ! Geopotential height in m2 s-2 to height in m
          hgt = phil/con_g
 
@@ -173,15 +180,19 @@ module mp_thompson
          where(qr .LE. 0.0) nr=0.0
          where(qr .GT. 0 .and. nr .LE. 0.0) nr = make_RainNumber(qr*rho, tgrs) * orho
          where(qr .EQ. 0.0 .and. nr .GT. 0.0) nr=0.0
-
+!$acc end kernels
 
          !..Check for existing aerosol data, both CCN and IN aerosols.  If missing
          !.. fill in just a basic vertical profile, somewhat boundary-layer following.
          if (is_aerosol_aware) then
 
            ! Potential cloud condensation nuclei (CCN)
-           if (MAXVAL(nwfa) .lt. eps) then
+!$acc kernels
+           maxv = MAXVAL(nwfa)
+!$acc end kernels
+           if (maxv .lt. eps) then
              if (mpirank==mpiroot) write(*,*) ' Apparently there are no initial CCN aerosols.'
+!$acc kernels
              do i = 1, ncol
                if (hgt(i,1).le.1000.0) then
                  h_01 = 0.8
@@ -198,9 +209,13 @@ module mp_thompson
                  nwfa(i,k) = naCCN1+naCCN0*exp(-((hgt(i,k)-hgt(i,1))/1000.)*niCCN3)
                enddo
              enddo
+!$acc end kernels
            else
              if (mpirank==mpiroot) write(*,*) ' Apparently initial CCN aerosols are present.'
-             if (MAXVAL(nwfa2d) .lt. eps) then
+!$acc kernels
+             maxv = MAXVAL(nwfa2d)
+!$acc end kernels
+             if (maxv .lt. eps) then
                !+---+-----------------------------------------------------------------+
                !..Scale the lowest level aerosol data into an emissions rate.  This is
                !.. very far from ideal, but need higher emissions where larger amount
@@ -211,18 +226,24 @@ module mp_thompson
                !..        that was tested as ~(20kmx20kmx50m = 2.E10 m**-3)
                !+---+-----------------------------------------------------------------+
                if (mpirank==mpiroot) write(*,*) ' Apparently there are no initial CCN aerosol surface emission rates.'
+!$acc kernels
                do i = 1, ncol
                   z1 = hgt(i,2)-hgt(i,1)
                   nwfa2d(i) = nwfa(i,1) * 0.000196 * (50./z1)
                enddo
+!$acc end kernels
              else
                 if (mpirank==mpiroot) write(*,*) ' Apparently initial CCN aerosol surface emission rates are present.'
              endif
            endif
 
            ! Potential ice nuclei (IN)
-           if (MAXVAL(nifa) .lt. eps) then
+!$acc kernels
+           maxv = MAXVAL(nifa)
+!$acc end kernels
+           if (maxv .lt. eps) then
              if (mpirank==mpiroot) write(*,*) ' Apparently there are no initial IN aerosols.'
+!$acc kernels
              do i = 1, ncol
                if (hgt(i,1).le.1000.0) then
                   h_01 = 0.8
@@ -238,17 +259,24 @@ module mp_thompson
                   nifa(i,k) = naIN1+naIN0*exp(-((hgt(i,k)-hgt(i,1))/1000.)*niIN3)
                enddo
              enddo
+!$acc end kernels
            else
              if (mpirank==mpiroot) write(*,*) ' Apparently initial IN aerosols are present.'
-             if (MAXVAL(nifa2d) .lt. eps) then
+!$acc kernels
+             maxv = MAXVAL(nifa2d)
+!$acc end kernels
+             if (maxv .lt. eps) then
                if (mpirank==mpiroot) write(*,*) ' Apparently there are no initial IN aerosol surface emission rates, set to zero.'
                ! calculate IN surface flux here, right now just set to zero
+!$acc kernels
                nifa2d = 0.
+!$acc end kernels
              else
                if (mpirank==mpiroot) write(*,*) ' Apparently initial IN aerosol surface emission rates are present.'
              endif
            endif
 
+!$acc kernels
            ! Ensure we have 1st guess cloud droplet number where mass non-zero but no number.
            where(qc .LE. 0.0) nc=0.0
            where(qc .GT. 0 .and. nc .LE. 0.0) nc = make_DropletNumber(qc*rho, nwfa*rho) * orho
@@ -260,16 +288,21 @@ module mp_thompson
 
            ! Copy to local array for calculating cloud effective radii below
            nc_local = nc
+!$acc end kernels
 
          else
 
            ! Constant droplet concentration for single moment cloud water as in
            ! module_mp_thompson.F90, only needed for effective radii calculation
+!$acc kernels
            nc_local = Nt_c/rho
+!$acc end kernels
 
          end if
 
+
          if (convert_dry_rho) then
+!$acc kernels
            !qc = qc/(1.0_kind_phys+qv)
            !qr = qr/(1.0_kind_phys+qv)
            !qi = qi/(1.0_kind_phys+qv)
@@ -283,6 +316,7 @@ module mp_thompson
               nwfa = nwfa/(1.0_kind_phys+qv)
               nifa = nifa/(1.0_kind_phys+qv)
            end if
+!$acc end kernels
          end if
 
          is_initialized = .true.
@@ -333,20 +367,24 @@ module mp_thompson
          real(kind_phys),           intent(inout) :: qg(:,:)
          real(kind_phys),           intent(inout) :: ni(:,:)
          real(kind_phys),           intent(inout) :: nr(:,:)
+!$acc declare copy(spechum,qc,qr,qi,qs,qg,ni,nr)
          ! Aerosols
          logical,                   intent(in)    :: is_aerosol_aware, reset_dBZ
          ! The following arrays are not allocated if is_aerosol_aware is false
          real(kind_phys), optional, intent(inout) :: nc(:,:)
          real(kind_phys), optional, intent(inout) :: nwfa(:,:)
          real(kind_phys), optional, intent(inout) :: nifa(:,:)
+!$acc declare copy(nc,nwfa,nifa)
          real(kind_phys), optional, intent(in   ) :: nwfa2d(:)
          real(kind_phys), optional, intent(in   ) :: nifa2d(:)
+!$acc declare copyin(nwfa2d,nifa2d)
          logical,         optional, intent(in   ) :: aero_ind_fdb
          ! State variables and timestep information
          real(kind_phys),           intent(inout) :: tgrs(:,:)
          real(kind_phys),           intent(in   ) :: prsl(:,:)
          real(kind_phys),           intent(in   ) :: phii(:,:)
          real(kind_phys),           intent(in   ) :: omega(:,:)
+!$acc declare copyin(tgrs,prsl,phii,omega)
          real(kind_phys),           intent(in   ) :: dtp
          logical,                   intent(in   ) :: first_time_step
          integer,                   intent(in   ) :: istep, nsteps
@@ -357,9 +395,12 @@ module mp_thompson
          real(kind_phys),           intent(inout) :: graupel(:)
          real(kind_phys),           intent(inout) :: ice(:)
          real(kind_phys),           intent(inout) :: snow(:)
+!$acc declare copy(prcp,rain,graupel,ice,snow)
          real(kind_phys),           intent(  out) :: sr(:)
+!$acc declare copyout(sr)
          ! Radar reflectivity
          real(kind_phys),           intent(inout) :: refl_10cm(:,:)
+!$acc declare copy(refl_10cm)
          logical,                   intent(in   ) :: do_radar_ref
          logical,                   intent(in)    :: sedi_semi
          integer,                   intent(in)    :: decfl
@@ -371,6 +412,7 @@ module mp_thompson
          ! Extended diagnostic output
          logical,                   intent(in)    :: ext_diag
          real(kind_phys), target,   intent(inout) :: diag3d(:,:,:)
+!$acc declare copy(diag3d)
          logical,                   intent(in)    :: reset_diag3d
 
          ! CCPP error handling
@@ -384,6 +426,7 @@ module mp_thompson
          real(kind_phys),           intent(in) :: spp_prt_list(:)
          character(len=3),          intent(in) :: spp_var_list(:)
          real(kind_phys),           intent(in) :: spp_stddev_cutoff(:)
+!$acc declare copyin(spp_wts_mp,spp_prt_list,spp_var_list,spp_stddev_cutoff)
 
          ! Local variables
 
@@ -397,6 +440,7 @@ module mp_thompson
          ! Vertical velocity and level width
          real(kind_phys) :: w(1:ncol,1:nlev)                !< m s-1
          real(kind_phys) :: dz(1:ncol,1:nlev)               !< m
+!$acc declare create(rho,qv,w,dz)
          ! Rain/snow/graupel fall amounts
          real(kind_phys) :: rain_mp(1:ncol)                 ! mm, dummy, not used
          real(kind_phys) :: graupel_mp(1:ncol)              ! mm, dummy, not used
@@ -406,6 +450,7 @@ module mp_thompson
          real(kind_phys) :: delta_graupel_mp(1:ncol)        ! mm
          real(kind_phys) :: delta_ice_mp(1:ncol)            ! mm
          real(kind_phys) :: delta_snow_mp(1:ncol)           ! mm
+!$acc declare create(rain_mp,graupel_mp,ice_mp,snow_mp,delta_rain_mp,delta_graupel_mp,delta_ice_mp,delta_snow_mp)
          ! Radar reflectivity
          logical         :: diagflag                        ! must be true if do_radar_ref is true, not used otherwise
          integer         :: do_radar_ref_mp                 ! integer instead of logical do_radar_ref
@@ -522,6 +567,7 @@ module mp_thompson
          ! DH* - do this only if istep == 1? Would be ok if it was
          ! guaranteed that nothing else in the same subcycle group
          ! was using these arrays, but it is somewhat dangerous.
+!$acc kernels
          qv = spechum/(1.0_kind_phys-spechum)
 
          if (convert_dry_rho) then
@@ -560,6 +606,7 @@ module mp_thompson
          delta_graupel_mp = 0
          delta_ice_mp     = 0
          delta_snow_mp    = 0
+!$acc end kernels
 
          ! Flags for calculating radar reflectivity; diagflag is redundant
          if (do_radar_ref) then
@@ -726,6 +773,7 @@ module mp_thompson
          ! was using these arrays, but it is somewhat dangerous.
 
          !> - Convert water vapor mixing ratio back to specific humidity
+!$acc kernels
          spechum = qv/(1.0_kind_phys+qv)
 
          if (convert_dry_rho) then
@@ -758,6 +806,7 @@ module mp_thompson
            ! Unlike inside mp_gt_driver, rain does not contain frozen precip
            sr = (snow + graupel + ice)/(rain + snow + graupel + ice +1.e-12)
          end if
+!$acc end kernels
 
          unset_extended_diagnostic_pointers: if (ext_diag) then
            !vts1       => null()
