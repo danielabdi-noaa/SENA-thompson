@@ -16,7 +16,7 @@ add_executable( thompson_kernel_cpu ${thompson_kernel_common_files} )
 
 if(ENABLE_GPU)
   add_executable( thompson_kernel_gpu ${thompson_kernel_common_files} )
-  target_compile_options(thompson_kernel_gpu PUBLIC ${OpenACC_Fortran_OPTIONS}:cc${CUDA_ARCH_LIST},cuda${CUDAToolkit_VERSION_MAJOR}.${CUDAToolkit_VERSION_MINOR})
+  target_compile_options(thompson_kernel_gpu PUBLIC ${OpenACC_Fortran_OPTIONS}:cc${CUDA_ARCH_LIST},cuda${CUDAToolkit_VERSION_MAJOR}.${CUDAToolkit_VERSION_MINOR} -Minfo=accel)
   target_link_options(thompson_kernel_gpu PUBLIC ${OpenACC_Fortran_OPTIONS}:cc${CUDA_ARCH_LIST})
 endif()
 

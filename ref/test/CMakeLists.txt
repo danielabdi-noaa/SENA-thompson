@@ -1,4 +1,5 @@
 list( APPEND thompson_test_output
+  test_output/CCN_ACTIVATE.BIN
   test_output/output.test
 )
  
@@ -6,6 +7,7 @@ add_subdirectory( tools )
 
 # Create test_output directory for test output and symlink all files
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test_output)
+message(STATUS Symlinking ${thompson_test_output} )
 foreach(FILENAME ${thompson_test_output})
     execute_process( COMMAND ${CMAKE_COMMAND} -E create_symlink
            ${CMAKE_CURRENT_SOURCE_DIR}/../../test/${FILENAME}
