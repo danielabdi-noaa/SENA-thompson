@@ -363,9 +363,9 @@
       
        !..complex index of refraction for the ice-air-water mixture
        !.. of the particle:
-       m_core = get_m_mix_nested (m_air, m_i, m_w, volair, volice,      &
-                         volwater, mixingrule, host, matrix, inclusion, &
-                         hostmatrix, hostinclusion, error)
+       m_core = 0.0 !get_m_mix_nested (m_air, m_i, m_w, volair, volice,      &
+                    !     volwater, mixingrule, host, matrix, inclusion, &
+                    !     hostmatrix, hostinclusion, error)
        if (error .ne. 0) then
         C_back = 0.0d0
         return
