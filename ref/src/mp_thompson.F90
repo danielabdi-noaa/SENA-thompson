@@ -96,7 +96,7 @@ module mp_thompson
          real(kind_phys) :: nc_local(1:ncol,1:nlev) ! needed because nc is only allocated if is_aerosol_aware is true
 !$acc declare create(qv,hgt,rho,orho,nc_local)
          !
-         real (kind=kind_phys) :: h_01, z1, niIN3, niCCN3
+         real(kind=kind_phys) :: h_01, z1, niIN3, niCCN3
          real(kind_phys) :: maxv
          integer :: i, k
 
@@ -388,7 +388,7 @@ module mp_thompson
          real(kind_phys),           intent(in   ) :: dtp
          logical,                   intent(in   ) :: first_time_step
          integer,                   intent(in   ) :: istep, nsteps
-         real,                      intent(in   ) :: dt_inner
+         real(kind_phys),                      intent(in   ) :: dt_inner
          ! Precip/rain/snow/graupel fall amounts and fraction of frozen precip
          real(kind_phys),           intent(inout) :: prcp(:)
          real(kind_phys),           intent(inout) :: rain(:)

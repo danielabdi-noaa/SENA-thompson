@@ -67,7 +67,7 @@ program test_thompson
    real(kind_phys)            :: dtp
    logical                    :: first_time_step
    integer                    :: istep, nsteps
-   real                       :: dt_inner
+   real(kind_phys)            :: dt_inner
    ! Precip/rain/snow/graupel fall amounts and fraction of frozen precip
    real(kind_phys), allocatable            :: prcp(:)
    real(kind_phys), allocatable            :: rain(:)
