@@ -108,6 +108,7 @@ program test_thompson
 
    integer ierror
    integer :: ncol_per_thread, ncol_rem
+   character(64) :: str
    !===============================
 #ifdef MPI
    mpicomm = MPI_COMM_WORLD
@@ -147,8 +148,21 @@ program test_thompson
 #endif
 
    !===============================
-   ncol = 64
-   nlev = 64
+   if (COMMAND_ARGUMENT_COUNT().GE.1) THEN
+      CALL GET_COMMAND_ARGUMENT(1, str)
+      READ(str,*) ncol
+   else
+      ncol = 512
+   endif
+   if (COMMAND_ARGUMENT_COUNT().GE.2) THEN
+      CALL GET_COMMAND_ARGUMENT(2, str)
+      READ(str,*) nlev
+   else
+      nlev = 64
+   endif
+   print*, ncol, nlev
+   !===============================
+   !===============================
    threads = n_omp_threads
    ext_diag = .FALSE.
    is_aerosol_aware = .FALSE.
