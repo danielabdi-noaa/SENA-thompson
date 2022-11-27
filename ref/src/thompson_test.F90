@@ -413,7 +413,7 @@ program test_thompson
          e = s + ncol_per_thread
        endif
        e = MIN(e, ncol)
-       PRINT*, tid, s, e, e - s + 1
+       PRINT*, tid, s, ":", e, "=", e - s + 1
        !------------------------
 
        CALL mp_thompson_run(e-s+1, nlev, con_g, con_rd,        &
