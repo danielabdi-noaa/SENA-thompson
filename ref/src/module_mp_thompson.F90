@@ -1116,7 +1116,7 @@ MODULE module_mp_thompson
                           nr1d, nc1d, nwfa1d, nifa1d,                   &
                           t1d, p1d, w1d, dz1d, rho, dBZ
 !..Extended diagnostics, single column arrays
-      REAL(kind=kind_phys), DIMENSION(:), ALLOCATABLE::                              &
+      REAL(kind=kind_phys), DIMENSION(kts:kte) ::                              &
                           !vtsk1, txri1, txrc1,                       &
                           prw_vcdc1,                                 &
                           prw_vcde1, tpri_inu1, tpri_ide1_d,         &
@@ -1261,63 +1261,6 @@ MODULE module_mp_thompson
          end if
       end if test_only_once
 
-      ! These must be alwyas allocated
-      !allocate (vtsk1(kts:kte))
-      !allocate (txri1(kts:kte))
-      !allocate (txrc1(kts:kte))
-      allocate_extended_diagnostics: if (ext_diag) then
-         allocate (prw_vcdc1(kts:kte))
-         allocate (prw_vcde1(kts:kte))
-         allocate (tpri_inu1(kts:kte))
-         allocate (tpri_ide1_d(kts:kte))
-         allocate (tpri_ide1_s(kts:kte))
-         allocate (tprs_ide1(kts:kte))
-         allocate (tprs_sde1_d(kts:kte))
-         allocate (tprs_sde1_s(kts:kte))
-         allocate (tprg_gde1_d(kts:kte))
-         allocate (tprg_gde1_s(kts:kte))
-         allocate (tpri_iha1(kts:kte))
-         allocate (tpri_wfz1(kts:kte))
-         allocate (tpri_rfz1(kts:kte))
-         allocate (tprg_rfz1(kts:kte))
-         allocate (tprs_scw1(kts:kte))
-         allocate (tprg_scw1(kts:kte))
-         allocate (tprg_rcs1(kts:kte))
-         allocate (tprs_rcs1(kts:kte))
-         allocate (tprr_rci1(kts:kte))
-         allocate (tprg_rcg1(kts:kte))
-         allocate (tprw_vcd1_c(kts:kte))
-         allocate (tprw_vcd1_e(kts:kte))
-         allocate (tprr_sml1(kts:kte))
-         allocate (tprr_gml1(kts:kte))
-         allocate (tprr_rcg1(kts:kte))
-         allocate (tprr_rcs1(kts:kte))
-         allocate (tprv_rev1(kts:kte))
-         allocate (tten1(kts:kte))
-         allocate (qvten1(kts:kte))
-         allocate (qrten1(kts:kte))
-         allocate (qsten1(kts:kte))
-         allocate (qgten1(kts:kte))
-         allocate (qiten1(kts:kte))
-         allocate (niten1(kts:kte))
-         allocate (nrten1(kts:kte))
-         allocate (ncten1(kts:kte))
-         allocate (qcten1(kts:kte))
-!$acc enter data create(       prw_vcdc1,                                 &
-!$acc                          prw_vcde1, tpri_inu1, tpri_ide1_d,         &
-!$acc                          tpri_ide1_s, tprs_ide1,                    &
-!$acc                          tprs_sde1_d, tprs_sde1_s, tprg_gde1_d,     &
-!$acc                          tprg_gde1_s, tpri_iha1, tpri_wfz1,         &
-!$acc                          tpri_rfz1, tprg_rfz1, tprs_scw1, tprg_scw1,&
-!$acc                          tprg_rcs1, tprs_rcs1,                      &
-!$acc                          tprr_rci1, tprg_rcg1,                      &
-!$acc                          tprw_vcd1_c, tprw_vcd1_e, tprr_sml1,       &
-!$acc                          tprr_gml1, tprr_rcg1,                      &
-!$acc                          tprr_rcs1, tprv_rev1,  tten1, qvten1,      &
-!$acc                          qrten1, qsten1, qgten1, qiten1, niten1,    &
-!$acc                          nrten1, ncten1, qcten1)
-      end if allocate_extended_diagnostics
-
 !+---+
       i_start = its
       j_start = jts
@@ -1392,8 +1335,7 @@ MODULE module_mp_thompson
       kmax_ni = 0
       kmax_nr = 0
 
-!$acc kernels &
-!$acc loop collapse(2) independent &
+!$acc parallel loop collapse(2) &
 #if ( WRF_CHEM == 1 )
 !$acc private(rainprod, evapprod) &
 #endif
@@ -1401,6 +1343,19 @@ MODULE module_mp_thompson
 !$acc          nr1d, nc1d, nwfa1d, nifa1d,                   &
 !$acc          t1d, p1d, w1d, dz1d, rho, dBZ,                &
 !$acc          re_qc1d, re_qi1d, re_qs1d)  &
+!$acc private( prw_vcdc1,                                 &
+!$acc          prw_vcde1, tpri_inu1, tpri_ide1_d,         &
+!$acc          tpri_ide1_s, tprs_ide1,                    &
+!$acc          tprs_sde1_d, tprs_sde1_s, tprg_gde1_d,     &
+!$acc          tprg_gde1_s, tpri_iha1, tpri_wfz1,         &
+!$acc          tpri_rfz1, tprg_rfz1, tprs_scw1, tprg_scw1,&
+!$acc          tprg_rcs1, tprs_rcs1,                      &
+!$acc          tprr_rci1, tprg_rcg1,                      &
+!$acc          tprw_vcd1_c, tprw_vcd1_e, tprr_sml1,       &
+!$acc          tprr_gml1, tprr_rcg1,                      &
+!$acc          tprr_rcs1, tprv_rev1,  tten1, qvten1,      &
+!$acc          qrten1, qsten1, qgten1, qiten1, niten1,    &
+!$acc          nrten1, ncten1, qcten1) &
 !$acc private(tten, qvten, qcten, qiten, &
 !$acc           qrten, qsten, qgten, niten, nrten, ncten, nwfaten, nifaten, &
 !$acc           prw_vcd, &
@@ -1791,6 +1746,7 @@ MODULE module_mp_thompson
          enddo
 
          assign_extended_diagnostics: if (ext_diag) then
+!$acc loop independent
            do k=kts,kte
             !vts1(i,k,j)       = vtsk1(k)
             !txri(i,k,j)       = txri(i,k,j)       + txri1(k)
@@ -1904,7 +1860,7 @@ MODULE module_mp_thompson
 
       enddo i_loop
       enddo j_loop
-!$acc end kernels
+!$acc end parallel
 
 ! DEBUG - GT
 !      write(*,'(a,7(a,e13.6,1x,a,i3,a,i3,a,i3,a,1x))') 'MP-GT:', &
@@ -1917,63 +1873,6 @@ MODULE module_mp_thompson
 !         'nr: ', nr_max, '(', imax_nr, ',', jmax_nr, ',', kmax_nr, ')'
 ! END DEBUG - GT
       enddo ! end of nt loop
-
-      ! These are always allocated
-      !deallocate (vtsk1)
-      !deallocate (txri1)
-      !deallocate (txrc1)
-      deallocate_extended_diagnostics: if (ext_diag) then
-         deallocate (prw_vcdc1)
-         deallocate (prw_vcde1)
-         deallocate (tpri_inu1)
-         deallocate (tpri_ide1_d)
-         deallocate (tpri_ide1_s)
-         deallocate (tprs_ide1)
-         deallocate (tprs_sde1_d)
-         deallocate (tprs_sde1_s)
-         deallocate (tprg_gde1_d)
-         deallocate (tprg_gde1_s)
-         deallocate (tpri_iha1)
-         deallocate (tpri_wfz1)
-         deallocate (tpri_rfz1)
-         deallocate (tprg_rfz1)
-         deallocate (tprs_scw1)
-         deallocate (tprg_scw1)
-         deallocate (tprg_rcs1)
-         deallocate (tprs_rcs1)
-         deallocate (tprr_rci1)
-         deallocate (tprg_rcg1)
-         deallocate (tprw_vcd1_c)
-         deallocate (tprw_vcd1_e)
-         deallocate (tprr_sml1)
-         deallocate (tprr_gml1)
-         deallocate (tprr_rcg1)
-         deallocate (tprr_rcs1)
-         deallocate (tprv_rev1)
-         deallocate (tten1)
-         deallocate (qvten1)
-         deallocate (qrten1)
-         deallocate (qsten1)
-         deallocate (qgten1)
-         deallocate (qiten1)
-         deallocate (niten1)
-         deallocate (nrten1)
-         deallocate (ncten1)
-         deallocate (qcten1)
-!$acc exit data delete(        prw_vcdc1,                                 &
-!$acc                          prw_vcde1, tpri_inu1, tpri_ide1_d,         &
-!$acc                          tpri_ide1_s, tprs_ide1,                    &
-!$acc                          tprs_sde1_d, tprs_sde1_s, tprg_gde1_d,     &
-!$acc                          tprg_gde1_s, tpri_iha1, tpri_wfz1,         &
-!$acc                          tpri_rfz1, tprg_rfz1, tprs_scw1, tprg_scw1,&
-!$acc                          tprg_rcs1, tprs_rcs1,                      &
-!$acc                          tprr_rci1, tprg_rcg1,                      &
-!$acc                          tprw_vcd1_c, tprw_vcd1_e, tprr_sml1,       &
-!$acc                          tprr_gml1, tprr_rcg1,                      &
-!$acc                          tprr_rcs1, tprv_rev1,  tten1, qvten1,      &
-!$acc                          qrten1, qsten1, qgten1, qiten1, niten1,    &
-!$acc                          nrten1, ncten1, qcten1)
-      end if deallocate_extended_diagnostics
 
       END SUBROUTINE mp_gt_driver
 !> @}
@@ -2416,7 +2315,7 @@ MODULE module_mp_thompson
 !+---+-----------------------------------------------------------------+
 !> - Put column of data into local arrays.
 !+---+-----------------------------------------------------------------+
-!$acc loop independent reduction(.and.:no_micro) private(nu_c,xDc,lamc)
+!$acc loop independent reduction(.and.:no_micro) private(nu_c,xDc,lamc,lami,ilami,xDi,lamr)
       do k = kts, kte
          temp(k) = t1d(k)
          qv(k) = MAX(1.E-10, qv1d(k))
@@ -3430,7 +3329,7 @@ MODULE module_mp_thompson
 !> - Calculate tendencies of all species but constrain the number of ice
 !! to reasonable values.
 !+---+-----------------------------------------------------------------+
-!$acc loop independent private(orho,lfus2)
+!$acc loop independent private(orho,lfus2,xrc,xnc,nu_c,lamc,xDc,xri,xni,lami,ilami,xDi,xnr,xrr,lamr,xnr)
       do k = kts, kte
          orho = 1./rho(k)
          lfus2 = lsub - lvap(k)
@@ -3787,7 +3686,8 @@ MODULE module_mp_thompson
 !! single timestep and explicit number of drops smaller than Dc_star
 !! from lookup table.
 !+---+-----------------------------------------------------------------+
-!$acc loop independent private(orho)
+!$acc loop independent private(orho,fcd,dfcd,clap,xrc,xnc,tempc,otemp,rvs,rvs_p,rvs_pp,gamsc,alphsc,xsat, &
+!$acc                         t1_evap,Dc_star,idx_d,idx_n,nic,n,idx_c)
       do k = kts, kte
          orho = 1./rho(k)
          if ( (ssatw(k).gt. eps) .or. (ssatw(k).lt. -eps .and. &
@@ -3889,7 +3789,8 @@ MODULE module_mp_thompson
 !> - If still subsaturated, allow rain to evaporate, following
 !! Srivastava & Coen (1992).
 !+---+-----------------------------------------------------------------+
-!$acc loop independent private(orho)
+!$acc loop independent private(tempc,otemp,orho,rvs,rvs_p,rvs_pp,gamsc,alphsc,xsat,t1_evap, &
+!$acc                          lamr,rate_max,eva_factor)
       do k = kts, kte
          if ( (ssatw(k).lt. -eps) .and. L_qr(k) &
                      .and. (.not.(prw_vcd(k).gt. 0.)) ) then
@@ -4367,7 +4268,7 @@ MODULE module_mp_thompson
         niter = int(nstep/max(decfl,1)) + 1
         dtcfl = dt/niter
 
-!$acc loop independent private(dtcfl) private(graulsfc)
+!$acc loop independent private(dtcfl) private(graulsfc,orhodt,vtg,ygra1,zans1,N0_exp,lam_exp,lamg) reduction(+:pptgraul)
         do n = 1, niter
           rg_tmp(:) = rg(:)
           call semi_lagrange_sedim(kte,dzq,vtgk,rg,graulsfc,dtcfl,R1)
@@ -4406,7 +4307,7 @@ MODULE module_mp_thompson
 !! instantly freeze any cloud water found below HGFR.
 !+---+-----------------------------------------------------------------+
       if (.not. iiwarm) then
-!$acc loop independent private(lfus2)
+!$acc loop independent private(xri,lfus2,xnc)
       do k = kts, kte
          xri = MAX(0.0, qi1d(k) + qiten(k)*DT)
          if ( (temp(k).gt. T_0) .and. (xri.gt. 0.0) ) then
@@ -4725,7 +4626,7 @@ MODULE module_mp_thompson
             z2 = 0.0d0
             y1 = 0.0d0
             y2 = 0.0d0
-!$acc loop collapse(2) independent reduction(+:t1,z1,y1,t2,y2,z2)
+!$acc loop collapse(2) independent private(massr,massg,dvg,dvr) reduction(+:t1,z1,y1,t2,y2,z2)
             do n2 = 1, nbr
                do n = 1, nbg
                 massr = am_r * Dr(n2)**bm_r

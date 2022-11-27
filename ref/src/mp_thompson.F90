@@ -640,7 +640,9 @@ module mp_thompson
          ! Set pointers for extended diagnostics
          set_extended_diagnostic_pointers: if (ext_diag) then
             if (reset_diag3d) then
-               diag3d = 0.0
+!$acc kernels
+               diag3d(:,:,:) = 0.0
+!$acc end kernels
             end if
             !vts1       => diag3d(:,:,X:X)
             !txri       => diag3d(:,:,X:X)
@@ -682,6 +684,45 @@ module mp_thompson
             nrten3     => diag3d(:,:,35:35)
             ncten3     => diag3d(:,:,36:36)
             qcten3     => diag3d(:,:,37:37)
+#ifdef _OPENACC
+            call acc_attach(prw_vcdc  ) 
+            call acc_attach(prw_vcde  ) 
+            call acc_attach(tpri_inu  ) 
+            call acc_attach(tpri_ide_d) 
+            call acc_attach(tpri_ide_s) 
+            call acc_attach(tprs_ide  ) 
+            call acc_attach(tprs_sde_d) 
+            call acc_attach(tprs_sde_s) 
+            call acc_attach(tprg_gde_d) 
+            call acc_attach(tprg_gde_s) 
+            call acc_attach(tpri_iha  ) 
+            call acc_attach(tpri_wfz  ) 
+            call acc_attach(tpri_rfz  ) 
+            call acc_attach(tprg_rfz  ) 
+            call acc_attach(tprs_scw  ) 
+            call acc_attach(tprg_scw  ) 
+            call acc_attach(tprg_rcs  ) 
+            call acc_attach(tprs_rcs  ) 
+            call acc_attach(tprr_rci  ) 
+            call acc_attach(tprg_rcg  ) 
+            call acc_attach(tprw_vcd_c) 
+            call acc_attach(tprw_vcd_e) 
+            call acc_attach(tprr_sml  ) 
+            call acc_attach(tprr_gml  ) 
+            call acc_attach(tprr_rcg  ) 
+            call acc_attach(tprr_rcs  ) 
+            call acc_attach(tprv_rev  ) 
+            call acc_attach(tten3     ) 
+            call acc_attach(qvten3    ) 
+            call acc_attach(qrten3    ) 
+            call acc_attach(qsten3    ) 
+            call acc_attach(qgten3    ) 
+            call acc_attach(qiten3    ) 
+            call acc_attach(niten3    ) 
+            call acc_attach(nrten3    ) 
+            call acc_attach(ncten3    ) 
+            call acc_attach(qcten3    ) 
+#endif
          end if set_extended_diagnostic_pointers
 
          !> - Call mp_gt_driver() with or without aerosols

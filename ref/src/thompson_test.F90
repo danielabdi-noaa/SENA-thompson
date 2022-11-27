@@ -164,7 +164,7 @@ program test_thompson
    !===============================
    !===============================
    threads = n_omp_threads
-   ext_diag = .FALSE.
+   ext_diag = .TRUE.
    is_aerosol_aware = .FALSE.
    convert_dry_rho = .FALSE.
    con_g = 9.80665
@@ -180,14 +180,14 @@ program test_thompson
    dtp = 0.01
    istep = 1
    nsteps = 20
-   dt_inner = 0.01
-   do_radar_ref = .FALSE.
+   dt_inner = 0.02
+   do_radar_ref = .TRUE.
    sedi_semi = .FALSE.
    decfl = 1
    blkno = 1
    spp_mp = 1
    n_var_spp = 2
-   reset_diag3d = .FALSE.
+   reset_diag3d = .TRUE.
    !===============================
 
 #ifdef MPI
@@ -341,6 +341,7 @@ program test_thompson
 
    !--- Print state
    CALL print_state("Input state",   &
+       ext_ndiag3d,      &
        spechum,          &
        qc,               &
        qr,               &
@@ -488,6 +489,7 @@ program test_thompson
 
    !--- Print state
    CALL print_state("Output state",   &
+       ext_ndiag3d,      &
        spechum,          &
        qc,               &
        qr,               &

@@ -15,6 +15,7 @@ CONTAINS
   ! Prints statistics for the kernel state variables
   !------------------------------------------------------------------
   SUBROUTINE print_state(msg,   &
+       ext_ndiag3d,      &
        spechum,          &
        qc,               &
        qr,               &
@@ -47,8 +48,11 @@ CONTAINS
        spp_stddev_cutoff &
        )
 
-    CHARACTER(LEN=*) :: msg
+    INTEGER :: i
+    CHARACTER(LEN=9) :: varn
 
+    CHARACTER(LEN=*) :: msg
+    INTEGER ext_ndiag3d
     REAL(kind_phys) spechum(:,:)
     REAL(kind_phys) qc(:,:)
     REAL(kind_phys) qr(:,:)
@@ -104,7 +108,10 @@ CONTAINS
     CALL print_2d_variable("prsl", prsl)
     CALL print_2d_variable("phil", phil)
     CALL print_1d_variable("area", area)
-    CALL print_3d_variable("diag3d", diag3d)
+    DO i = 1, ext_ndiag3d
+        WRITE(varn, '(A,I0.2)') "diag3d_", i
+        CALL print_2d_variable(varn, diag3d(:,:,i))
+    ENDDO
     CALL print_2d_variable("omega", omega)
     CALL print_1d_variable("prcp", prcp)
     CALL print_1d_variable("rain", rain)
