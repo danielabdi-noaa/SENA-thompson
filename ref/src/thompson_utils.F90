@@ -85,11 +85,11 @@ CONTAINS
     REAL(kind_phys) spp_stddev_cutoff(:)
 
     WRITE(*,'(A4)') "TEST"
-    WRITE(*,'(A5,A117)') "TEST ", REPEAT("=",117)
+    WRITE(*,'(A5,A137)') "TEST ", REPEAT("=",137)
     WRITE(*,'(A5,A32)') "TEST ", msg
-    WRITE(*,'(A5,A117)') "TEST ", REPEAT("=",117)
-    WRITE(*,'(A5,A17,5A20)') "TEST ", "Variable", "Min", "Max", "First", "Last", "RMS"
-    WRITE(*,'(A5,A117)') "TEST ", REPEAT("-",117)
+    WRITE(*,'(A5,A137)') "TEST ", REPEAT("=",137)
+    WRITE(*,'(A5,A17,6A20)') "TEST ", "Variable", "Min", "Max", "Avg", "First", "Last", "RMS"
+    WRITE(*,'(A5,A137)') "TEST ", REPEAT("-",137)
 
     CALL print_2d_variable("spechum", spechum)
     CALL print_2d_variable("qc", qc)
@@ -125,7 +125,7 @@ CONTAINS
     CALL print_1d_variable("spp_prt_list", spp_prt_list)
     CALL print_1d_variable("spp_stddev_cutoff", spp_stddev_cutoff)
 
-    WRITE(*,'(A5,A117)') "TEST ", REPEAT("-",117)
+    WRITE(*,'(A5,A137)') "TEST ", REPEAT("-",137)
     WRITE(*,'(A4)') "TEST"
 
   END SUBROUTINE print_state
@@ -138,14 +138,15 @@ CONTAINS
   SUBROUTINE print_1d_variable(name, data)
 
     CHARACTER(LEN=*) :: name
-    REAL(kind_phys)         :: data(:)
+    REAL(kind_phys)         :: data(:), avg
 
     ! Note: Assumed shape array sections always start with index=1 for all
     ! dimensions
     !       So we don't have to know start/end indices here
-    WRITE(*,'(A5, A17,5ES20.10)') "TEST ", name, MINVAL(data), MAXVAL(data), data(1), &
+    avg = SUM(data) / SIZE(data)
+    WRITE(*,'(A5, A17,6ES20.10)') "TEST ", name, MINVAL(data), MAXVAL(data), avg, data(1), &
                             data(SIZE(data,1)),            &
-                            SQRT(SUM(data**2) / SIZE(data))
+                            SQRT(SUM(data**2 - avg**2) / SIZE(data))
 
   END SUBROUTINE print_1d_variable
 
@@ -157,14 +158,15 @@ CONTAINS
   SUBROUTINE print_2d_variable(name, data)
 
     CHARACTER(LEN=*) :: name
-    REAL(kind_phys)         :: data(:,:)
+    REAL(kind_phys)         :: data(:,:), avg
 
     ! Note: Assumed shape array sections always start with index=1 for all
     ! dimensions
     !       So we don't have to know start/end indices here
-    WRITE(*,'(A5, A17,5ES20.10)') "TEST ", name, MINVAL(data), MAXVAL(data), data(1,1), &
+    avg = SUM(data) / SIZE(data)
+    WRITE(*,'(A5, A17, 6ES20.10)') "TEST ", name, MINVAL(data), MAXVAL(data), avg, data(1,1), &
                             data(SIZE(data,1), SIZE(data,2)),            &
-                            SQRT(SUM(data**2) / SIZE(data))
+                            SQRT(SUM(data**2 - avg**2) / SIZE(data))
 
   END SUBROUTINE print_2d_variable
 
