@@ -3,6 +3,7 @@ program test_thompson
    USE thompson_utils
    USE machine, only: kind_phys
    USE mp_thompson
+#define MPI
 #ifdef _OPENMP
    USE omp_lib
 #endif
@@ -438,15 +439,15 @@ program test_thompson
 !$omp end parallel do
 #endif
 
-#ifdef MPI
-   CALL MPI_Barrier(MPI_COMM_WORLD,ierror)
-#endif
-
    CALL SYSTEM_CLOCK (count=count_end)
    elapsed = REAL (count_end - count_start) / REAL (count_rate)
    PRINT*
    PRINT*, "Finished executing kernel in =", elapsed  
    PRINT*
+
+#ifdef MPI
+   CALL MPI_Barrier(MPI_COMM_WORLD,ierror)
+#endif
 
    PRINT*, "Calling finalize"
    CALL mp_thompson_finalize(errmsg, errflg)
